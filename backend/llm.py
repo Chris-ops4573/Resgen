@@ -17,7 +17,7 @@ Requirements:
 - No \\input, \\include, \\write18, \\openout, \\read, \\filecontents, \\csname, or shell-escape.
 - Escape special chars (\\, %, $, #, &, _, {{, }}, ~, ^).
 - Single page, tight layout, consistent headings.
-- ATS best practices: strong action verbs, quantified impact, relevant keywords (no stuffing), no pronouns, <= ~25 words per bullet, max 3 bullets per item.
+- ATS best practices: odd number of bullet pointsstrong action verbs, quantified impact, relevant keywords (no stuffing), no pronouns, <= ~25 words per bullet, max 3 bullets per item.
 - Present tense for current roles; past for previous.
 - Do NOT invent facts. Use only provided data.
 
