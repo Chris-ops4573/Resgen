@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import ResumeParser from "../components/ResumeParser"; // adjust path
 
 /* point the frontend to FastAPI (port 8000) */
-const RAW_API_BASE = (import.meta as any)?.env?.VITE_API_BASE || "http://localhost:8000";
+const RAW_API_BASE = (import.meta as any)?.env?.VITE_API_BASE || "http://35.90.41.218:8000";
 const API_BASE = String(RAW_API_BASE).replace(/\/+$/, ""); // trim trailing slash
 
 /* ---------------- Types ---------------- */
