@@ -4,3 +4,15 @@
 /* optional: small global polish */
 :root { color-scheme: light dark; }
 html { -webkit-text-size-adjust: 100%; }
+
+/* Hide native number spinners across browsers */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield !important; /* Firefox */
+  appearance: textfield !important;      /* Modern browsers */
+}

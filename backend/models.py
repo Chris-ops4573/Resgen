@@ -65,3 +65,6 @@ class GenerateRequest(BaseModel):
 class GenerateResponse(BaseModel):
     latex: str
     pdfBase64: Optional[str] = None
+
+class ParseResponse(BaseModel):
+    user: UserProfile  # same shape your builder already uses
