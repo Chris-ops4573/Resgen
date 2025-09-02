@@ -1141,46 +1141,63 @@ export default function ResumeBuilder() {
             </div>
           </Section>
 
-          {/* Achievements & Job */}
-          <Section title="Achievements & Job">
-            <div className="grid gap-4">
-              <div className="grid gap-3">
-                <span className="text-sm font-medium text-zinc-800">Achievements</span>
-                {achievements.map((a, i) => (
-                  <div key={i} className="flex gap-3">
-                    <Input
-                      value={a}
-                      onChange={(e) => setAchievements((prev) => prev.map((x, idx) => (idx === i ? e.target.value : x)))}
-                      placeholder="e.g., SIH 2024 finalist"
-                    />
-                    {achievements.length > 1 && (
-                      <button
-                        type="button"
-                        className="text-sm text-red-600 hover:text-red-700"
-                        onClick={() => setAchievements((prev) => prev.filter((_, idx) => idx !== i))}
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  className="text-sm text-zinc-700 hover:text-zinc-900"
-                  onClick={() => setAchievements((prev) => [...prev, ""])}
-                >
-                  + Add achievement
-                </button>
-              </div>
-
-              <div className="grid gap-3">
-                <span className="text-sm font-medium text-zinc-800">Target Job</span>
-                <Input placeholder="Job title" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
-                <Input placeholder="Company (optional)" value={jobCompany} onChange={(e) => setJobCompany(e.target.value)} />
-                <Textarea placeholder="Paste the job description…" value={jobDesc} onChange={(e) => setJobDesc(e.target.value)} />
-              </div>
+          {/* Achievements */}
+          <Section title="Achievements" desc="Short one-liners that add punch.">
+            <div className="grid gap-3">
+              {achievements.map((a, i) => (
+                <div key={i} className="flex gap-3">
+                  <Input
+                    value={a}
+                    onChange={(e) =>
+                      setAchievements((prev) => prev.map((x, idx) => (idx === i ? e.target.value : x)))
+                    }
+                    placeholder="e.g., SIH 2024 finalist"
+                  />
+                  {achievements.length > 1 && (
+                    <button
+                      type="button"
+                      className="text-sm text-red-600 hover:text-red-700"
+                      onClick={() => setAchievements((prev) => prev.filter((_, idx) => idx !== i))}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                className="text-sm text-zinc-700 hover:text-zinc-900"
+                onClick={() => setAchievements((prev) => [...prev, ""])}
+              >
+                + Add achievement
+              </button>
             </div>
           </Section>
+
+          {/* Target Job */}
+          <Section
+            title="Target Job"
+            desc="This guides tailoring and relevance scoring for experiences, projects, and skills."
+          >
+            <div className="grid gap-3">
+              <Input
+                placeholder="Job title"
+                value={jobTitle}
+                onChange={(e) => setJobTitle(e.target.value)}
+              />
+              <Input
+                placeholder="Company (optional)"
+                value={jobCompany}
+                onChange={(e) => setJobCompany(e.target.value)}
+              />
+              <Textarea
+                placeholder="Paste the job description…"
+                value={jobDesc}
+                onChange={(e) => setJobDesc(e.target.value)}
+              />
+            </div>
+          </Section>
+
 
           {/* Output Options */}
           <Section title="Output Options" desc="Control how much goes into the resume.">
