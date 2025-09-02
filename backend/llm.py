@@ -64,10 +64,10 @@ Requirements:
 - Escape special chars (\\, %, $, #, &, _, {{, }}, ~, ^).
 - Use consistent typography across all sections (same body font and size). Do NOT use \\textit, \\emph, \\itshape, or \\small in body text.
 - Prefer one page with compact spacing; NEVER force it by reducing font size below 11pt or over-tightening spacing.
-- ATS best practices: strong action verbs, quantified impact, relevant keywords (no stuffing), no pronouns,
+- ATS best practices: strong action verbs, quantified impact when provided, relevant keywords (no stuffing), no pronouns,
   ≤ ~25 words per bullet, MAX 3 bullets per item (prefer 1 or 3).
 - Present tense for current roles; past tense for previous.
-- Do NOT invent facts. Use only provided data.
+- Do NOT invent facts. Use only provided data. If no metric is given, use qualitative impact language without fabricating numbers.
 
 You will receive:
 - 'user'   : already PRUNED to contain at most the selected items to show.
@@ -99,35 +99,44 @@ Use EXACTLY this preamble template and macros, then use these macros consistentl
 Layout rules (tight & clean, never cramped):
 1) Keep whitespace compact; avoid large vertical gaps. Do NOT add extra blank lines or excessive \\vspace.
 
-2) SKILLS section — **dynamic labels and safe fallback**:
+2) SKILLS section — dynamic labels and safe fallback:
    - If 'user.skills' is empty or missing, OMIT the Skills section entirely.
-   - Otherwise, use \\Section{{Skills}} (same header + rule as others) and render one or two labeled rows, in the SAME body font/size (no italics/small), comma-separated, no bullets.
-   - **Choose labels dynamically based on the skills and job description**:
-       a) If many programming/CS/cloud items (e.g., Python/JavaScript/C++/Java/Go, React/Node, AWS/Docker/K8s),
+   - Otherwise, use \\Section{{Skills}} (same header + rule as others) and render one or two labeled rows in the SAME body font/size (no italics/small), comma-separated, no bullets.
+   - Choose labels dynamically based on the skills and job description:
+       a) If many programming/CS/cloud items (Python/JavaScript/C++/Java/Go; React/Node; AWS/Docker/K8s),
           use labels: **Languages/CS** and **Frameworks/Tools**.
-       b) If skills are ERP/finance/enterprise or domain-heavy (e.g., SAP S/4HANA, FICO, FI-AR, CO, ECC, Oracle, Salesforce, GAAP),
+       b) If skills are ERP/finance/domain-heavy (SAP S/4HANA, FICO, FI-AR, CO, ECC, Oracle, Salesforce, GAAP),
           use labels: **Modules/Domains** and **Tools/Platforms**.
        c) Otherwise, default to: **Core Skills** and **Tools & Platforms**.
-   - Partition the provided 'skills' into at most two buckets using the above logic.
-     Order within each row by **relevance to 'job.description'** first, then by importance/frequency.
-   - **Formatting** (exact):
+   - Partition 'skills' into at most two buckets using the above logic.
+     Order within each row by relevance to 'job.description' first, then by importance/frequency.
+   - Formatting (exact):
        \\noindent \\textbf{{<Label A>:}} skill1, skill2, skill3\\\\
        \\textbf{{<Label B>:}} skill4, skill5, skill6
      If only one bucket has content, render just the first row.
    - Respect 'limits.maxSkills': show at most that many skills across both rows.
-   - Keep each row to one wrapped line if possible; if you must break, keep it natural and avoid trailing punctuation.
+   - Normalize names (e.g., "Node.js" not "nodejs"), deduplicate case-insensitively.
    - Do not invent new skills; use only those provided.
 
-3) Education, Work Experience, Projects, Achievements use \\Section{{...}} with the thin rule. Use bullets only when needed; prefer 1 or 3 bullets with quantified outcomes.
+3) CONTENT REWRITE & POLISH (very important):
+   - NEVER paste the job description text into the resume. Use it only to tailor wording and prioritize keywords.
+   - Rewrite free-form text and messy bullets into crisp resume bullets with strong verbs and clear outcomes.
+   - Prefer outcome-first phrasing when possible (e.g., "Reduced build times 30% by..." or, if no numbers, "Improved build times through...").
+   - Fix grammar, tense, capitalization, and punctuation; remove filler/buzzwords; eliminate first-person pronouns.
+   - Keep 1 or 3 bullets per item. If too many, keep the most relevant to 'job.description'.
+   - If a project/experience description is a paragraph, convert it into 1 or 3 clean bullets.
+   - Standardize dates as "Mon YYYY -- Mon YYYY" or "Mon YYYY -- Present" (e.g., "Feb 2023 -- Present").
 
-4) Dates are right-aligned in \\RoleRow; keep location compact (City, Country).
+4) SECTION ORDER:
+   - Contact block, then optionally Skills (if present), then Education, Work Experience, Projects, Achievements.
 
-5) If the content cannot fit cleanly on one page while preserving readability and spacing, allow a second page.
+5) Education, Work Experience, Projects, Achievements use \\Section{{...}} with the thin rule and \\RoleRow exactly once per item.
+
+6) If the content cannot fit cleanly on one page while preserving readability and spacing, allow a second page.
    Never compress by shrinking fonts, cramming line spacing, or removing necessary structure.
 
 Generate the final LaTeX document using only the allowed packages and the macros above. Do not add any other packages or external files.
 """
-
 
 def _vision_client() -> ChatGoogleGenerativeAI:
     return ChatGoogleGenerativeAI(
