@@ -11,6 +11,7 @@ function Section({ title, desc, children }: { title: string; desc?: string; chil
         "border border-zinc-200/70 ring-1 ring-black/5",
         "shadow-[0_1px_0_0_rgba(255,255,255,0.6)_inset,0_10px_30px_-10px_rgba(0,0,0,0.15)]",
         "transition hover:shadow-[0_1px_0_0_rgba(255,255,255,0.6)_inset,0_24px_50px_-20px_rgba(0,0,0,0.25)]",
+        "min-w-0", // allow child content to shrink
       ].join(" ")}
     >
       <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-transparent [background:radial-gradient(1200px_600px_at_0%_-20%,rgba(14,165,233,0.08),transparent_40%),radial-gradient(1200px_600px_at_100%_120%,rgba(99,102,241,0.08),transparent_40%)]" />
@@ -123,12 +124,12 @@ export default function PdfPreview() {
             <div className="h-8 w-8 rounded-2xl bg-gradient-to-b from-zinc-700 to-zinc-900 shadow ring-1 ring-black/10" />
             <span className="text-sm font-semibold tracking-tight">Resume Preview</span>
           </div>
-          <div className="hidden md:block text-xs text-zinc-500">React + Tailwind</div>
+          <div className="hidden md:block text-xs text-zinc-500">Resgen - AI Resume Builder</div>
         </div>
       </header>
 
       {/* Content */}
-      <main className="mx-auto max-w-6xl px-4 py-6 md:py-10 grid gap-6 md:grid-cols-[1fr,22rem]">
+      <main className="mx-auto max-w-6xl px-4 py-6 md:py-10 grid gap-6 md:grid-cols-[minmax(0,1fr),22rem]">
         <Section
           title="Your resume"
           desc={pdfUrl ? "Rendered from your latest submission." : "No compiled PDF was returned. (Showing LaTeX if available.)"}
@@ -149,7 +150,7 @@ export default function PdfPreview() {
           )}
         </Section>
 
-        <aside className="grid gap-6 md:sticky md:top-[76px] h-max">
+        <aside className="grid gap-6 md:sticky md:top-[76px] h-max min-w-0">
           <Section title="Actions" desc="Download or go back to edit.">
             <div className="flex flex-wrap gap-3">
               <PrimaryButton type="button" onClick={downloadPdf} disabled={!pdfUrl}>
@@ -163,7 +164,9 @@ export default function PdfPreview() {
             {latex ? (
               <details className="mt-5">
                 <summary className="cursor-pointer text-sm text-zinc-600">Show LaTeX (debug)</summary>
-                <pre className="mt-2 max-h-64 overflow-auto rounded-lg bg-zinc-950/90 p-3 text-xs text-zinc-50">{latex}</pre>
+                <pre className="mt-2 max-h-64 max-w-full overflow-x-auto overflow-y-auto whitespace-pre-wrap break-words rounded-lg bg-zinc-950/90 p-3 text-xs text-zinc-50">
+                  {latex}
+                </pre>
                 <div className="mt-3">
                   <SecondaryButton type="button" onClick={downloadTex}>Download .tex</SecondaryButton>
                 </div>

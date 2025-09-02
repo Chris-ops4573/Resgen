@@ -584,7 +584,7 @@ export default function ResumeBuilder() {
             </span>
           </div>
           <div className="hidden md:block text-xs text-zinc-500">
-            React + Tailwind
+            Resgen - AI Resume Builder
           </div>
         </div>
       </header>

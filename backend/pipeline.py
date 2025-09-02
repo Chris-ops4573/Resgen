@@ -37,7 +37,7 @@ def run_resume_pipeline(user: Dict[str, Any], job: Dict[str, Any], options: Opti
         try:
             pdf_bytes = compile_pdf(latex)
             pdf_b64 = base64.b64encode(pdf_bytes).decode("utf-8")
-        except Exception:
-            pdf_b64 = None
+        except Exception as e:
+            print("error occured:", e)
 
     return {"latex": latex, "pdfBase64": pdf_b64}
