@@ -238,7 +238,6 @@ function NumberField({
 
 /* ---------------- Screen ---------------- */
 export default function ResumeBuilder() {
-  const accent = ACCENT;
   const navigate = useNavigate();
 
   // basic profile
@@ -301,7 +300,7 @@ export default function ResumeBuilder() {
   };
 
   function applyParsedUser(u: any) {
-    if (u.name) setName(u.name);
+    if (u.name) setName(u.name); 
     if (u.email) setEmail(u.email);
     if (u.phone) setPhone(u.phone);
     if (u.location) setLocation(u.location);
