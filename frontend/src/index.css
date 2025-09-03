@@ -16,3 +16,20 @@ input[type="number"] {
   -moz-appearance: textfield !important; /* Firefox */
   appearance: textfield !important;      /* Modern browsers */
 }
+
+:root {
+  --accent: #0ea5e9;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(14,165,233,.18);
+}

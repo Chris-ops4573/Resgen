@@ -1,6 +1,9 @@
 import re
 
-ALLOWED_PACKAGES = {"geometry", "hyperref", "parskip", "enumitem"}
+ALLOWED_PACKAGES = {
+    "geometry", "hyperref", "parskip", "enumitem", "xcolor",
+}
+
 BANNED_CMDS = [
     r"\\write18", r"\\input(?!\{.*\})", r"\\include", r"\\openout", r"\\read",
     r"\\loop", r"\\repeat", r"\\csname", r"\\filecontents", r"\\immediate"

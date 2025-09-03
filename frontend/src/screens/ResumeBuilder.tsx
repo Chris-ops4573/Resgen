@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ResumeParser from "../components/ResumeParser"; // adjust path
+import ResumeParser from "../components/ResumeParser";
 
 /* point the frontend to FastAPI (port 8000) */
 const RAW_API_BASE = (import.meta as any)?.env?.VITE_API_BASE || "http://35.90.41.218:8000";
-const API_BASE = String(RAW_API_BASE).replace(/\/+$/, ""); // trim trailing slash
+const API_BASE = String(RAW_API_BASE).replace(/\/+$/, "");
 
 /* ---------------- Types ---------------- */
 type LinkItem = { label: string; url: string };
@@ -28,19 +28,53 @@ type Project = {
 type Education = {
   school: string;
   degree?: string;
-  graduation?: string; // e.g., "2024" or "May 2024"
-  details: string[];   // bullet-ish one-liners
+  graduation?: string;
+  details: string[];
 };
 
-/* ---------------- UI atoms ---------------- */
+/* ---------------- Shared UI atoms ---------------- */
+const ACCENT = "#0ea5e9";
+
+function BrandMark({ size = 32 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" className="rounded-2xl shadow ring-1 ring-black/10" aria-hidden="true">
+      <defs>
+        <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#0ea5e9" />
+          <stop offset="100%" stopColor="#6366f1" />
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="48" height="48" rx="12" fill="url(#g1)" />
+      {/* thin pipeline glyph (bottom-right) */}
+      <g opacity=".9" transform="translate(26,26)">
+        <rect x="0" y="8" width="18" height="2" rx="1" fill="white" />
+        <circle cx="0" cy="9" r="2" fill="white" />
+        <circle cx="18" cy="9" r="2" fill="white" />
+      </g>
+      {/* stylized R */}
+      <path d="M10 14c0-2.2 1.8-4 4-4h10c4.4 0 8 3.6 8 8s-3.6 8-8 8h-6v6h-4V14Zm14 8c2.2 0 4-1.8 4-4s-1.8-4-4-4h-10v8h10Z" fill="white" fillOpacity="0.9" />
+    </svg>
+  );
+}
+
+function Header({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <header className="sticky top-0 z-20 border-b border-zinc-200/80 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+      <div className="mx-auto max-w-6xl px-4 py-3 md:py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <BrandMark />
+          <span className="text-sm font-semibold tracking-tight">{title}</span>
+        </div>
+        {subtitle ? <div className="hidden md:block text-xs text-zinc-500">{subtitle}</div> : null}
+      </div>
+    </header>
+  );
+}
+
 function Section({
-  title,
-  desc,
-  children,
+  title, desc, children,
 }: {
-  title: string;
-  desc?: string;
-  children: React.ReactNode;
+  title: string; desc?: string; children: React.ReactNode;
 }) {
   return (
     <section
@@ -56,9 +90,7 @@ function Section({
       <div className="relative">
         <div className="mb-5">
           <h2 className="text-[22px] md:text-2xl font-semibold tracking-tight text-zinc-900">
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-zinc-900 via-zinc-700 to-zinc-900">
-              {title}
-            </span>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-zinc-900 via-zinc-700 to-zinc-900">{title}</span>
           </h2>
           {desc ? <p className="text-sm text-zinc-600 mt-1">{desc}</p> : null}
         </div>
@@ -68,15 +100,7 @@ function Section({
   );
 }
 
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="block">
       <div className="flex items-baseline justify-between mb-2">
@@ -88,19 +112,14 @@ function Field({
   );
 }
 
-function Input({
-  className,
-  ...props
-}: React.InputHTMLAttributes<HTMLInputElement>) {
+function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
       className={[
         "w-full rounded-xl border px-3.5 py-2.75 text-sm text-zinc-900",
-        "border-zinc-200 bg-white/70 shadow-inner",
-        "placeholder:text-zinc-400",
-        "transition",
-        "hover:bg-white focus:bg-white",
+        "border-zinc-200 bg-white/70 shadow-inner placeholder:text-zinc-400",
+        "transition hover:bg-white focus:bg-white",
         "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[color:var(--accent)]/20",
         className || "",
       ].join(" ")}
@@ -108,19 +127,14 @@ function Input({
   );
 }
 
-function Textarea({
-  className,
-  ...props
-}: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+function Textarea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea
       {...props}
       className={[
         "w-full rounded-xl border px-3.5 py-2.75 text-sm text-zinc-900",
-        "border-zinc-200 bg-white/70 shadow-inner min-h-[92px]",
-        "placeholder:text-zinc-400",
-        "transition",
-        "hover:bg-white focus:bg-white",
+        "border-zinc-200 bg-white/70 shadow-inner min-h-[92px] placeholder:text-zinc-400",
+        "transition hover:bg-white focus:bg-white",
         "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[color:var(--accent)]/20",
         className || "",
       ].join(" ")}
@@ -149,21 +163,18 @@ function Chip({ label, onRemove }: { label: string; onRemove?: () => void }) {
   );
 }
 
-function PrimaryButton({
-  children,
-  ...rest
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+function PrimaryButton({ children, className, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       {...rest}
       className={[
         "relative inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-medium",
-        "text-white",
-        "bg-gradient-to-b from-zinc-900 to-black",
+        "text-white bg-gradient-to-b from-zinc-900 to-black",
         "shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_10px_20px_-10px_rgba(0,0,0,0.5)]",
         "transition active:translate-y-[1px] active:shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_6px_16px_-10px_rgba(0,0,0,0.6)]",
         "disabled:opacity-50",
         "before:absolute before:inset-0 before:rounded-2xl before:bg-[linear-gradient(to_bottom,rgba(255,255,255,0.25),transparent)] before:pointer-events-none",
+        className || "",
       ].join(" ")}
     >
       {children}
@@ -171,120 +182,54 @@ function PrimaryButton({
   );
 }
 
-function SecondaryButton({
-  children,
-  ...rest
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+function SecondaryButton({ children, className, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       {...rest}
-      className="rounded-2xl border border-zinc-300 bg-white px-5 py-3 text-sm font-medium text-zinc-900 shadow-sm transition hover:shadow active:translate-y-[1px]"
+      className={[
+        "rounded-2xl border border-zinc-300 bg-white px-5 py-3 text-sm font-medium text-zinc-900 shadow-sm transition hover:shadow active:translate-y-[1px]",
+        className || "",
+      ].join(" ")}
     >
       {children}
     </button>
   );
 }
 
-/* Minimal, elegant toast popup */
-function Toast({
-  message,
-  onClose,
-}: {
-  message: string | null;
-  onClose: () => void;
-}) {
+function Toast({ message, onClose }: { message: string | null; onClose: () => void }) {
   if (!message) return null;
   return (
     <div className="fixed inset-x-0 top-3 z-[100] flex justify-center px-4">
       <div className="relative max-w-[640px] w-full rounded-2xl border border-zinc-200 bg-white/80 backdrop-blur shadow-[0_10px_30px_-10px_rgba(0,0,0,0.25)] ring-1 ring-black/5 px-4 py-3 text-sm text-zinc-900">
         {message}
-        <button
-          onClick={onClose}
-          className="absolute right-2 top-2 text-zinc-500 hover:text-zinc-700"
-          aria-label="Close"
-          title="Close"
-        >
-          ×
-        </button>
+        <button onClick={onClose} className="absolute right-2 top-2 text-zinc-500 hover:text-zinc-700" aria-label="Close" title="Close">×</button>
       </div>
     </div>
   );
 }
 
-/* Custom, elegant number input with smaller UP/DOWN chevrons */
 function NumberField({
-  value,
-  onChange,
-  min = 0,
-  max = Infinity,
-  step = 1,
-  placeholder,
+  value, onChange, min = 0, max = Infinity, step = 1, placeholder,
 }: {
-  value: number;
-  onChange: (n: number) => void;
-  min?: number;
-  max?: number;
-  step?: number;
-  placeholder?: string;
+  value: number; onChange: (n: number) => void; min?: number; max?: number; step?: number; placeholder?: string;
 }) {
-  function clamp(n: number) {
-    return Math.max(min, Math.min(max, n));
-  }
-  function inc() {
-    onChange(clamp((Number.isFinite(value) ? value : 0) + step));
-  }
-  function dec() {
-    onChange(clamp((Number.isFinite(value) ? value : 0) - step));
-  }
+  function clamp(n: number) { return Math.max(min, Math.min(max, n)); }
+  function inc() { onChange(clamp((Number.isFinite(value) ? value : 0) + step)); }
+  function dec() { onChange(clamp((Number.isFinite(value) ? value : 0) - step)); }
   function onTextChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const raw = e.target.value;
-    if (raw === "") {
-      onChange(min);
-      return;
-    }
-    const n = Number(raw);
-    if (!Number.isNaN(n)) onChange(clamp(n));
+    const raw = e.target.value; if (raw === "") { onChange(min); return; }
+    const n = Number(raw); if (!Number.isNaN(n)) onChange(clamp(n));
   }
-
   return (
     <div className="relative">
-      <Input
-        type="number"
-        inputMode="numeric"
-        placeholder={placeholder}
-        value={Number.isFinite(value) ? value : min}
-        onChange={onTextChange}
-        min={min}
-        max={max}
-        className="pr-12 [appearance:textfield]"
-      />
-      <div
-        className="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col overflow-hidden
-                   rounded-lg border border-zinc-200 bg-white shadow-sm w-7"
-        aria-hidden="true"
-      >
-        <button
-          type="button"
-          onClick={inc}
-          aria-label="Increase"
-          className="group h-5 w-7 grid place-items-center bg-gradient-to-b from-white to-zinc-50
-                     hover:from-zinc-50 hover:to-white active:from-zinc-100 active:to-zinc-50 transition"
-        >
-          <svg viewBox="0 0 20 20" className="h-3 w-3 text-zinc-700" fill="currentColor" aria-hidden="true">
-            <path d="M10 6l-4 4h8l-4-4z" />
-          </svg>
+      <Input type="number" inputMode="numeric" placeholder={placeholder} value={Number.isFinite(value) ? value : min} onChange={onTextChange} min={min} max={max} className="pr-12 [appearance:textfield]" />
+      <div className="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm w-7" aria-hidden="true">
+        <button type="button" onClick={inc} aria-label="Increase" className="group h-5 w-7 grid place-items-center bg-gradient-to-b from-white to-zinc-50 hover:from-zinc-50 hover:to-white active:from-zinc-100 active:to-zinc-50 transition">
+          <svg viewBox="0 0 20 20" className="h-3 w-3 text-zinc-700" fill="currentColor" aria-hidden="true"><path d="M10 6l-4 4h8l-4-4z" /></svg>
         </button>
         <div className="h-px bg-zinc-200" />
-        <button
-          type="button"
-          onClick={dec}
-          aria-label="Decrease"
-          className="group h-5 w-7 grid place-items-center bg-gradient-to-b from-white to-zinc-50
-                     hover:from-zinc-50 hover:to-white active:from-zinc-100 active:to-zinc-50 transition"
-        >
-          <svg viewBox="0 0 20 20" className="h-3 w-3 text-zinc-700" fill="currentColor" aria-hidden="true">
-            <path d="M10 14l4-4H6l4 4z" />
-          </svg>
+        <button type="button" onClick={dec} aria-label="Decrease" className="group h-5 w-7 grid place-items-center bg-gradient-to-b from-white to-zinc-50 hover:from-zinc-50 hover:to-white active:from-zinc-100 active:to-zinc-50 transition">
+          <svg viewBox="0 0 20 20" className="h-3 w-3 text-zinc-700" fill="currentColor" aria-hidden="true"><path d="M10 14l4-4H6l4 4z" /></svg>
         </button>
       </div>
     </div>
@@ -293,11 +238,10 @@ function NumberField({
 
 /* ---------------- Screen ---------------- */
 export default function ResumeBuilder() {
-  // Accent used in rings/glow.
-  const accent = "#0ea5e9";
+  const accent = ACCENT;
   const navigate = useNavigate();
 
-  // --- basic profile ---
+  // basic profile
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -309,7 +253,7 @@ export default function ResumeBuilder() {
     { label: "LinkedIn", url: "" },
   ]);
 
-  // education (NEW)
+  // education
   const [educations, setEducations] = useState<Education[]>([
     { school: "", degree: "", graduation: "", details: [""] },
   ]);
@@ -320,15 +264,7 @@ export default function ResumeBuilder() {
 
   // experiences
   const [experiences, setExperiences] = useState<Experience[]>([
-    {
-      title: "",
-      company: "",
-      location: "",
-      startDate: "",
-      endDate: "Present",
-      skills: [],
-      bullets: [{ text: "" }],
-    },
+    { title: "", company: "", location: "", startDate: "", endDate: "Present", skills: [], bullets: [{ text: "" }] },
   ]);
 
   // projects
@@ -344,7 +280,7 @@ export default function ResumeBuilder() {
   const [jobCompany, setJobCompany] = useState("");
   const [jobDesc, setJobDesc] = useState("");
 
-  // options (defaults inside caps)
+  // options
   const [maxExperiences, setMaxExperiences] = useState(3);
   const [maxProjects, setMaxProjects] = useState(2);
   const [maxSkills, setMaxSkills] = useState(10);
@@ -375,7 +311,7 @@ export default function ResumeBuilder() {
       for (const [k, v] of Object.entries(u.links)) {
         if (!v) continue;
         if (typeof v === "string") flat.push({ label: k[0].toUpperCase() + k.slice(1), url: v });
-        else for (const [lk, lv] of Object.entries(v as Record<string,string>)) if (lv) flat.push({ label: lk, url: lv as string });
+        else for (const [lk, lv] of Object.entries(v as Record<string, string>)) if (lv) flat.push({ label: lk, url: lv as string });
       }
       if (flat.length) setLinks(flat);
     }
@@ -419,13 +355,11 @@ export default function ResumeBuilder() {
     }
   }
 
-
   const canSubmit = useMemo(
     () =>
       !!name &&
       (!!jobTitle || !!jobDesc) &&
-      (experiences.some((e) => e.title || e.company) ||
-        projects.some((p) => p.name)),
+      (experiences.some((e) => e.title || e.company) || projects.some((p) => p.name)),
     [name, jobTitle, jobDesc, experiences, projects]
   );
 
@@ -439,40 +373,19 @@ export default function ResumeBuilder() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    // ---------- front-end validation ----------
+    // validation
     const expCount = experiences.filter((e) => e.title || e.company).length;
     const projCount = projects.filter((p) => p.name).length;
     const skillCount = skills.length;
     const achCount = achievements.filter(Boolean).length;
 
-    if (!jobTitle && !jobDesc) {
-      pop("Please add a Target Job — enter a job title or paste a job description.");
-      return;
-    }
-    if (maxExperiences > expCount) {
-      pop(`You selected ${maxExperiences} experiences but only added ${expCount}. Reduce the number or add more roles.`);
-      return;
-    }
-    if (maxProjects > projCount) {
-      pop(`You selected ${maxProjects} projects but only added ${projCount}. Reduce the number or add more projects.`);
-      return;
-    }
-    if (maxSkills > skillCount) {
-      pop(`You selected ${maxSkills} skills but only added ${skillCount}. Reduce the number or add more skills.`);
-      return;
-    }
-    if (maxAchievements > achCount) {
-      pop(`You selected ${maxAchievements} achievements but only added ${achCount}. Reduce the number or add more achievements.`);
-      return;
-    }
-    if (!name) {
-      pop("Please enter your Name.");
-      return;
-    }
-    if (!canSubmit) {
-      pop("Please add at least one Experience or Project.");
-      return;
-    }
+    if (!jobTitle && !jobDesc) { pop("Please add a Target Job — enter a job title or paste a job description."); return; }
+    if (maxExperiences > expCount) { pop(`You selected ${maxExperiences} experiences but only added ${expCount}. Reduce the number or add more roles.`); return; }
+    if (maxProjects > projCount) { pop(`You selected ${maxProjects} projects but only added ${projCount}. Reduce the number or add more projects.`); return; }
+    if (maxSkills > skillCount) { pop(`You selected ${maxSkills} skills but only added ${skillCount}. Reduce the number or add more skills.`); return; }
+    if (maxAchievements > achCount) { pop(`You selected ${maxAchievements} achievements but only added ${achCount}. Reduce the number or add more achievements.`); return; }
+    if (!name) { pop("Please enter your Name."); return; }
+    if (!canSubmit) { pop("Please add at least one Experience or Project."); return; }
 
     setBusy(true);
     setError(null);
@@ -481,24 +394,12 @@ export default function ResumeBuilder() {
 
     try {
       const user = {
-        name,
-        email,
-        phone,
-        location,
-        links: Object.fromEntries(
-          links.filter((l) => l.url).map((l) => [l.label.toLowerCase(), l.url])
-        ),
+        name, email, phone, location,
+        links: Object.fromEntries(links.filter((l) => l.url).map((l) => [l.label.toLowerCase(), l.url])),
         skills,
-        experiences: experiences.map((e) => ({
-          ...e,
-          bullets: e.bullets.map((b) => b.text).filter(Boolean),
-        })),
-        projects: projects.map((p) => ({
-          ...p,
-          bullets: p.bullets.map((b) => b.text).filter(Boolean),
-        })),
+        experiences: experiences.map((e) => ({ ...e, bullets: e.bullets.map((b) => b.text).filter(Boolean) })),
+        projects: projects.map((p) => ({ ...p, bullets: p.bullets.map((b) => b.text).filter(Boolean) })),
         achievements: achievements.filter(Boolean),
-        // NEW: education payload
         education: educations
           .filter((ed) => ed.school.trim())
           .map((ed) => ({
@@ -510,13 +411,7 @@ export default function ResumeBuilder() {
       };
 
       const job = { title: jobTitle, company: jobCompany, description: jobDesc };
-      const options = {
-        maxExperiences,
-        maxProjects,
-        maxSkills,
-        maxAchievements,
-        compile: true,
-      };
+      const options = { maxExperiences, maxProjects, maxSkills, maxAchievements, compile: true };
 
       const res = await fetch(`${API_BASE}/`, {
         method: "POST",
@@ -556,11 +451,8 @@ export default function ResumeBuilder() {
   }
 
   return (
-    <div
-      className="min-h-dvh text-zinc-900 antialiased"
-      style={{ ["--accent" as any]: accent }}
-    >
-      {/* Hide native number spinners globally (ensures only white custom stepper shows) */}
+    <div className="min-h-dvh text-zinc-900 antialiased" style={{ ["--accent" as any]: ACCENT }}>
+      {/* hide native number spinners */}
       <style>{`
         input[type="number"]::-webkit-outer-spin-button,
         input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none !important; margin: 0 !important; }
@@ -574,90 +466,45 @@ export default function ResumeBuilder() {
         <div className="absolute -bottom-24 -right-24 h-[36rem] w-[36rem] rounded-full bg-[radial-gradient(closest-side,rgba(99,102,241,0.12),transparent)] blur-3xl" />
       </div>
 
-      {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-zinc-200/80 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-        <div className="mx-auto max-w-6xl px-4 py-3 md:py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-2xl bg-gradient-to-b from-zinc-700 to-zinc-900 shadow ring-1 ring-black/10" />
-            <span className="text-sm font-semibold tracking-tight">
-              Tailored Resume
-            </span>
-          </div>
-          <div className="hidden md:block text-xs text-zinc-500">
-            Resgen - AI Resume Builder
-          </div>
-        </div>
-      </header>
+      <Header title="Tailored Resume" subtitle="Resgen — AI Resume Builder" />
 
-      <Section title="Quick Start" desc="Upload your current resume to autofill fields.">
-        <ResumeParser apiBase={API_BASE} onParsed={applyParsedUser} />
-      </Section>
+      <main className="mx-auto max-w-6xl px-4 py-6 md:py-10 grid gap-6 md:grid-cols-[minmax(0,1fr),22rem]">
+        <form onSubmit={onSubmit} className="grid gap-6 min-w-0">
+          <Section title="Quick Start" desc="Upload your current resume to autofill fields.">
+            <ResumeParser apiBase={API_BASE} onParsed={applyParsedUser} />
+          </Section>
 
-      {/* Content */}
-      <main className="mx-auto max-w-6xl px-4 py-6 md:py-10 grid gap-6 md:grid-cols-[1fr,22rem]">
-        <form onSubmit={onSubmit} className="grid gap-6">
-          {/* Profile */}
           <Section title="Profile" desc="Your basic info and contact details.">
             <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Name *">
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Alex Dev" />
-              </Field>
-              <Field label="Location">
-                <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Bengaluru, IN" />
-              </Field>
-              <Field label="Email">
-                <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="alex@example.com" />
-              </Field>
-              <Field label="Phone">
-                <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91-90000-00000" />
-              </Field>
+              <Field label="Name *"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Alex Dev" /></Field>
+              <Field label="Location"><Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Bengaluru, IN" /></Field>
+              <Field label="Email"><Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="alex@example.com" /></Field>
+              <Field label="Phone"><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91-90000-00000" /></Field>
             </div>
 
             {/* Links */}
             <div className="mt-5 grid gap-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-zinc-800">Links</span>
-                <button
-                  type="button"
-                  onClick={() => setLinks((prev) => [...prev, { label: "Other", url: "" }])}
-                  className="text-sm text-zinc-700 hover:text-zinc-900"
-                >
-                  + Add link
-                </button>
+                <button type="button" onClick={() => setLinks((prev) => [...prev, { label: "Other", url: "" }])} className="text-sm text-zinc-700 hover:text-zinc-900">+ Add link</button>
               </div>
 
               {links.map((l, i) => (
-                <div
-                  key={i}
-                  className="grid gap-3 md:grid-cols-[1fr,1fr,auto] items-start"
-                >
+                <div key={i} className="grid gap-3 md:grid-cols-[1fr,1fr,auto] items-start">
                   <Input
                     value={l.label}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setLinks((prev) =>
-                        prev.map((x, idx) => (idx === i ? { ...x, label: v } : x))
-                      );
-                    }}
+                    onChange={(e) => setLinks((prev) => prev.map((x, idx) => (idx === i ? { ...x, label: e.target.value } : x)))}
                     placeholder="Label (GitHub, LinkedIn)"
                   />
                   <Input
                     value={l.url}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setLinks((prev) =>
-                        prev.map((x, idx) => (idx === i ? { ...x, url: v } : x))
-                      );
-                    }}
+                    onChange={(e) => setLinks((prev) => prev.map((x, idx) => (idx === i ? { ...x, url: e.target.value } : x)))}
                     placeholder="https://…"
                   />
-
                   {links.length > 1 && (
                     <button
                       type="button"
-                      onClick={() =>
-                        setLinks((prev) => prev.filter((_, idx) => idx !== i))
-                      }
+                      onClick={() => setLinks((prev) => prev.filter((_, idx) => idx !== i))}
                       className="justify-self-start md:justify-self-end self-center text-sm text-red-600 hover:text-red-700"
                     >
                       Remove
@@ -667,18 +514,13 @@ export default function ResumeBuilder() {
               ))}
             </div>
 
-            {/* Education (NEW, lives under Profile) */}
+            {/* Education */}
             <div className="mt-6 grid gap-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-zinc-800">Education</span>
                 <button
                   type="button"
-                  onClick={() =>
-                    setEducations((prev) => [
-                      ...prev,
-                      { school: "", degree: "", graduation: "", details: [""] },
-                    ])
-                  }
+                  onClick={() => setEducations((prev) => [...prev, { school: "", degree: "", graduation: "", details: [""] }])}
                   className="text-sm text-zinc-700 hover:text-zinc-900"
                 >
                   + Add education
@@ -687,105 +529,40 @@ export default function ResumeBuilder() {
 
               <div className="grid gap-5">
                 {educations.map((ed, i) => (
-                  <div
-                    key={i}
-                    className="grid gap-3 rounded-xl border border-zinc-200/80 p-4 bg-white/65 shadow-sm hover:shadow transition"
-                  >
+                  <div key={i} className="grid gap-3 rounded-xl border border-zinc-200/80 p-4 bg-white/65 shadow-sm hover:shadow transition">
                     <div className="grid gap-3 md:grid-cols-3">
-                      <Input
-                        placeholder="School *"
-                        value={ed.school}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setEducations((prev) =>
-                            prev.map((x, idx) => (idx === i ? { ...x, school: v } : x))
-                          );
-                        }}
-                      />
-                      <Input
-                        placeholder="Degree (e.g., B.Tech in CSE)"
-                        value={ed.degree || ""}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setEducations((prev) =>
-                            prev.map((x, idx) => (idx === i ? { ...x, degree: v } : x))
-                          );
-                        }}
-                      />
-                      <Input
-                        placeholder="Graduation (e.g., 2024 / May 2024)"
-                        value={ed.graduation || ""}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setEducations((prev) =>
-                            prev.map((x, idx) => (idx === i ? { ...x, graduation: v } : x))
-                          );
-                        }}
-                      />
+                      <Input placeholder="School *" value={ed.school}
+                             onChange={(e) => setEducations((prev) => prev.map((x, idx) => (idx === i ? { ...x, school: e.target.value } : x)))} />
+                      <Input placeholder="Degree (e.g., B.Tech in CSE)" value={ed.degree || ""}
+                             onChange={(e) => setEducations((prev) => prev.map((x, idx) => (idx === i ? { ...x, degree: e.target.value } : x)))} />
+                      <Input placeholder="Graduation (e.g., 2024 / May 2024)" value={ed.graduation || ""}
+                             onChange={(e) => setEducations((prev) => prev.map((x, idx) => (idx === i ? { ...x, graduation: e.target.value } : x)))} />
                     </div>
 
                     <div className="grid gap-2">
                       <span className="text-sm font-medium text-zinc-800">Details</span>
                       {ed.details.map((d, j) => (
-                        <Input
-                          key={j}
-                          placeholder="e.g., GPA: 8.7/10  |  Coursework: DS&A, DBMS, OS"
-                          value={d}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setEducations((prev) =>
-                              prev.map((x, idx) => {
-                                if (idx !== i) return x;
-                                const details = x.details.map((dd, jj) => (jj === j ? v : dd));
-                                return { ...x, details };
-                              })
-                            );
-                          }}
-                        />
+                        <Input key={j} placeholder="e.g., GPA: 8.7/10  |  Coursework: DS&A, DBMS, OS" value={d}
+                               onChange={(e) => setEducations((prev) => prev.map((x, idx) => {
+                                 if (idx !== i) return x;
+                                 const details = x.details.map((dd, jj) => (jj === j ? e.target.value : dd));
+                                 return { ...x, details };
+                               }))} />
                       ))}
                       <div className="flex gap-3">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setEducations((prev) =>
-                              prev.map((x, idx) =>
-                                idx === i ? { ...x, details: [...x.details, ""] } : x
-                              )
-                            )
-                          }
-                          className="text-sm text-zinc-700 hover:text-zinc-900"
-                        >
-                          + Add detail
-                        </button>
+                        <button type="button" onClick={() => setEducations((prev) => prev.map((x, idx) => idx === i ? { ...x, details: [...x.details, ""] } : x))}
+                                className="text-sm text-zinc-700 hover:text-zinc-900">+ Add detail</button>
                         {ed.details.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setEducations((prev) =>
-                                prev.map((x, idx) => {
-                                  if (idx !== i) return x;
-                                  const details = x.details.slice(0, -1);
-                                  return { ...x, details };
-                                })
-                              )
-                            }
-                            className="text-sm text-zinc-500 hover:text-zinc-700"
-                          >
-                            Remove last
-                          </button>
+                          <button type="button" onClick={() => setEducations((prev) => prev.map((x, idx) => {
+                            if (idx !== i) return x; return { ...x, details: x.details.slice(0, -1) };
+                          }))} className="text-sm text-zinc-500 hover:text-zinc-700">Remove last</button>
                         )}
                       </div>
                     </div>
 
                     <div className="flex justify-end">
                       {educations.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setEducations((prev) => prev.filter((_, idx) => idx !== i))
-                          }
-                          className="text-sm text-red-600 hover:text-red-700"
-                        >
+                        <button type="button" onClick={() => setEducations((prev) => prev.filter((_, idx) => idx !== i))} className="text-sm text-red-600 hover:text-red-700">
                           Remove education
                         </button>
                       )}
@@ -796,126 +573,52 @@ export default function ResumeBuilder() {
             </div>
           </Section>
 
-          {/* Skills */}
           <Section title="Skills" desc="Press Enter or comma to add.">
             <div className="flex flex-wrap gap-2 mb-3">
-              {skills.map((s, i) => (
-                <Chip key={i} label={s} onRemove={() => setSkills((prev) => prev.filter((_, idx) => idx !== i))} />
-              ))}
+              {skills.map((s, i) => <Chip key={i} label={s} onRemove={() => setSkills((prev) => prev.filter((_, idx) => idx !== i))} />)}
             </div>
             <Input
               placeholder="Type a skill and press Enter (e.g., React)"
               value={skillInput}
               onChange={(e) => setSkillInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === ",") {
-                  e.preventDefault();
-                  addSkill(skillInput);
-                }
+                if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addSkill(skillInput); }
               }}
               onBlur={() => addSkill(skillInput)}
             />
           </Section>
 
-          {/* Experiences */}
           <Section title="Experiences" desc="Roles with bullets & associated skills.">
             <div className="grid gap-8">
               {experiences.map((exp, i) => (
                 <div key={i} className="grid gap-3 rounded-xl border border-zinc-200/80 p-4 bg-white/65 shadow-sm hover:shadow transition">
                   <div className="grid gap-3 md:grid-cols-2">
-                    <Input
-                      placeholder="Title"
-                      value={exp.title}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setExperiences((prev) => prev.map((x, idx) => (idx === i ? { ...x, title: v } : x)));
-                      }}
-                    />
-                    <Input
-                      placeholder="Company"
-                      value={exp.company}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setExperiences((prev) => prev.map((x, idx) => (idx === i ? { ...x, company: v } : x)));
-                      }}
-                    />
-                    <Input
-                      placeholder="Location"
-                      value={exp.location}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setExperiences((prev) => prev.map((x, idx) => (idx === i ? { ...x, location: v } : x)));
-                      }}
-                    />
+                    <Input placeholder="Title" value={exp.title} onChange={(e) => setExperiences((prev) => prev.map((x, idx) => idx === i ? { ...x, title: e.target.value } : x))} />
+                    <Input placeholder="Company" value={exp.company} onChange={(e) => setExperiences((prev) => prev.map((x, idx) => idx === i ? { ...x, company: e.target.value } : x))} />
+                    <Input placeholder="Location" value={exp.location} onChange={(e) => setExperiences((prev) => prev.map((x, idx) => idx === i ? { ...x, location: e.target.value } : x))} />
                     <div className="grid grid-cols-2 gap-3">
-                      <Input
-                        placeholder="Start (YYYY-MM)"
-                        value={exp.startDate}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setExperiences((prev) => prev.map((x, idx) => (idx === i ? { ...x, startDate: v } : x)));
-                        }}
-                      />
-                      <Input
-                        placeholder="End (YYYY-MM or Present)"
-                        value={exp.endDate}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setExperiences((prev) => prev.map((x, idx) => (idx === i ? { ...x, endDate: v } : x)));
-                        }}
-                      />
+                      <Input placeholder="Start (YYYY-MM)" value={exp.startDate} onChange={(e) => setExperiences((prev) => prev.map((x, idx) => idx === i ? { ...x, startDate: e.target.value } : x))} />
+                      <Input placeholder="End (YYYY-MM or Present)" value={exp.endDate} onChange={(e) => setExperiences((prev) => prev.map((x, idx) => idx === i ? { ...x, endDate: e.target.value } : x))} />
                     </div>
                   </div>
 
                   <div className="grid gap-2">
                     <span className="text-sm font-medium text-zinc-800">Bullets</span>
                     {exp.bullets.map((b, j) => (
-                      <Textarea
-                        key={j}
-                        placeholder="Start with an action verb and quantify impact…"
-                        value={b.text}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setExperiences((prev) =>
-                            prev.map((x, idx) => {
-                              if (idx !== i) return x;
-                              const bullets = x.bullets.map((bb, jj) => (jj === j ? { text: v } : bb));
-                              return { ...x, bullets };
-                            })
-                          );
-                        }}
-                      />
+                      <Textarea key={j} placeholder="Start with an action verb and quantify impact…" value={b.text}
+                                onChange={(e) => setExperiences((prev) => prev.map((x, idx) => {
+                                  if (idx !== i) return x;
+                                  const bullets = x.bullets.map((bb, jj) => (jj === j ? { text: e.target.value } : bb));
+                                  return { ...x, bullets };
+                                }))} />
                     ))}
                     <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setExperiences((prev) =>
-                            prev.map((x, idx) =>
-                              idx === i ? { ...x, bullets: [...x.bullets, { text: "" }] } : x
-                            )
-                          )
-                        }
-                        className="text-sm text-zinc-700 hover:text-zinc-900"
-                      >
-                        + Add bullet
-                      </button>
+                      <button type="button" onClick={() => setExperiences((prev) => prev.map((x, idx) => idx === i ? { ...x, bullets: [...x.bullets, { text: "" }] } : x))}
+                              className="text-sm text-zinc-700 hover:text-zinc-900">+ Add bullet</button>
                       {exp.bullets.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExperiences((prev) =>
-                              prev.map((x, idx) => {
-                                if (idx !== i) return x;
-                                const bullets = x.bullets.slice(0, -1);
-                                return { ...x, bullets };
-                              })
-                            )
-                          }
-                          className="text-sm text-zinc-500 hover:text-zinc-700"
-                        >
-                          Remove last
-                        </button>
+                        <button type="button" onClick={() => setExperiences((prev) => prev.map((x, idx) => {
+                          if (idx !== i) return x; return { ...x, bullets: x.bullets.slice(0, -1) };
+                        }))} className="text-sm text-zinc-500 hover:text-zinc-700">Remove last</button>
                       )}
                     </div>
                   </div>
@@ -924,18 +627,7 @@ export default function ResumeBuilder() {
                     <span className="text-sm font-medium text-zinc-800">Role skills (comma/Enter to add)</span>
                     <div className="flex flex-wrap gap-2">
                       {exp.skills.map((s, k) => (
-                        <Chip
-                          key={k}
-                          label={s}
-                          onRemove={() => {
-                            setExperiences((prev) =>
-                              prev.map((x, idx) => {
-                                if (idx !== i) return x;
-                                return { ...x, skills: x.skills.filter((_, kk) => kk !== k) };
-                              })
-                            );
-                          }}
-                        />
+                        <Chip key={k} label={s} onRemove={() => setExperiences((prev) => prev.map((x, idx) => idx === i ? { ...x, skills: x.skills.filter((_, kk) => kk !== k) } : x))} />
                       ))}
                     </div>
                     <Input
@@ -946,9 +638,7 @@ export default function ResumeBuilder() {
                           e.preventDefault();
                           const raw = t.value.split(",").map((s) => s.trim()).filter(Boolean);
                           if (raw.length) {
-                            setExperiences((prev) =>
-                              prev.map((x, idx) => (idx === i ? { ...x, skills: [...x.skills, ...raw] } : x))
-                            );
+                            setExperiences((prev) => prev.map((x, idx) => idx === i ? { ...x, skills: [...x.skills, ...raw] } : x));
                             t.value = "";
                           }
                         }
@@ -958,121 +648,46 @@ export default function ResumeBuilder() {
 
                   <div className="flex justify-end">
                     {experiences.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => setExperiences((prev) => prev.filter((_, idx) => idx !== i))}
-                        className="text-sm text-red-600 hover:text-red-700"
-                      >
-                        Remove role
-                      </button>
+                      <button type="button" onClick={() => setExperiences((prev) => prev.filter((_, idx) => idx !== i))}
+                              className="text-sm text-red-600 hover:text-red-700">Remove role</button>
                     )}
                   </div>
                 </div>
               ))}
-              <button
-                type="button"
-                onClick={() =>
-                  setExperiences((prev) => [
-                    ...prev,
-                    {
-                      title: "",
-                      company: "",
-                      location: "",
-                      startDate: "",
-                      endDate: "",
-                      skills: [],
-                      bullets: [{ text: "" }],
-                    },
-                  ])
-                }
-                className="text-sm text-zinc-700 hover:text-zinc-900"
-              >
-                + Add another experience
-              </button>
+              <button type="button" onClick={() => setExperiences((prev) => [...prev, { title: "", company: "", location: "", startDate: "", endDate: "", skills: [], bullets: [{ text: "" }] }])}
+                      className="text-sm text-zinc-700 hover:text-zinc-900">+ Add another experience</button>
             </div>
           </Section>
 
-          {/* Projects */}
           <Section title="Projects" desc="Personal or academic projects with bullets and links.">
             <div className="grid gap-8">
               {projects.map((p, i) => (
                 <div key={i} className="grid gap-3 rounded-xl border border-zinc-200/80 p-4 bg-white/65 shadow-sm hover:shadow transition">
                   <div className="grid gap-3 md:grid-cols-2">
-                    <Input
-                      placeholder="Name"
-                      value={p.name}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setProjects((prev) => prev.map((x, idx) => (idx === i ? { ...x, name: v } : x)));
-                      }}
-                    />
-                    <Input
-                      placeholder="Link (optional)"
-                      value={p.link}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setProjects((prev) => prev.map((x, idx) => (idx === i ? { ...x, link: v } : x)));
-                      }}
-                    />
+                    <Input placeholder="Name" value={p.name} onChange={(e) => setProjects((prev) => prev.map((x, idx) => idx === i ? { ...x, name: e.target.value } : x))} />
+                    <Input placeholder="Link (optional)" value={p.link} onChange={(e) => setProjects((prev) => prev.map((x, idx) => idx === i ? { ...x, link: e.target.value } : x))} />
                     <div className="md:col-span-2">
-                      <Textarea
-                        placeholder="One-line description"
-                        value={p.description}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setProjects((prev) => prev.map((x, idx) => (idx === i ? { ...x, description: v } : x)));
-                        }}
-                      />
+                      <Textarea placeholder="One-line description" value={p.description} onChange={(e) => setProjects((prev) => prev.map((x, idx) => idx === i ? { ...x, description: e.target.value } : x))} />
                     </div>
                   </div>
 
                   <div className="grid gap-2">
                     <span className="text-sm font-medium text-zinc-800">Bullets</span>
                     {p.bullets.map((b, j) => (
-                      <Textarea
-                        key={j}
-                        placeholder="What you built, how, impact"
-                        value={b.text}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setProjects((prev) =>
-                            prev.map((x, idx) => {
-                              if (idx !== i) return x;
-                              const bullets = x.bullets.map((bb, jj) => (jj === j ? { text: v } : bb));
-                              return { ...x, bullets };
-                            })
-                          );
-                        }}
-                      />
+                      <Textarea key={j} placeholder="What you built, how, impact" value={b.text}
+                                onChange={(e) => setProjects((prev) => prev.map((x, idx) => {
+                                  if (idx !== i) return x;
+                                  const bullets = x.bullets.map((bb, jj) => (jj === j ? { text: e.target.value } : bb));
+                                  return { ...x, bullets };
+                                }))} />
                     ))}
                     <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setProjects((prev) =>
-                            prev.map((x, idx) => (idx === i ? { ...x, bullets: [...x.bullets, { text: "" }] } : x))
-                          )
-                        }
-                        className="text-sm text-zinc-700 hover:text-zinc-900"
-                      >
-                        + Add bullet
-                      </button>
+                      <button type="button" onClick={() => setProjects((prev) => prev.map((x, idx) => idx === i ? { ...x, bullets: [...x.bullets, { text: "" }] } : x))}
+                              className="text-sm text-zinc-700 hover:text-zinc-900">+ Add bullet</button>
                       {p.bullets.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setProjects((prev) =>
-                              prev.map((x, idx) => {
-                                if (idx !== i) return x;
-                                const bullets = x.bullets.slice(0, -1);
-                                return { ...x, bullets };
-                              })
-                            )
-                          }
-                          className="text-sm text-zinc-500 hover:text-zinc-700"
-                        >
-                          Remove last
-                        </button>
+                        <button type="button" onClick={() => setProjects((prev) => prev.map((x, idx) => {
+                          if (idx !== i) return x; return { ...x, bullets: x.bullets.slice(0, -1) };
+                        }))} className="text-sm text-zinc-500 hover:text-zinc-700">Remove last</button>
                       )}
                     </div>
                   </div>
@@ -1087,9 +702,7 @@ export default function ResumeBuilder() {
                           e.preventDefault();
                           const raw = t.value.split(",").map((s) => s.trim()).filter(Boolean);
                           if (raw.length) {
-                            setProjects((prev) =>
-                              prev.map((x, idx) => (idx === i ? { ...x, skills: [...x.skills, ...raw] } : x))
-                            );
+                            setProjects((prev) => prev.map((x, idx) => idx === i ? { ...x, skills: [...x.skills, ...raw] } : x));
                             t.value = "";
                           }
                         }
@@ -1097,123 +710,52 @@ export default function ResumeBuilder() {
                     />
                     <div className="flex flex-wrap gap-2">
                       {p.skills.map((s, k) => (
-                        <Chip
-                          key={k}
-                          label={s}
-                          onRemove={() => {
-                            setProjects((prev) =>
-                              prev.map((x, idx) => {
-                                if (idx !== i) return x;
-                                return { ...x, skills: x.skills.filter((_, kk) => kk !== k) };
-                              })
-                            );
-                          }}
-                        />
+                        <Chip key={k} label={s} onRemove={() => setProjects((prev) => prev.map((x, idx) => idx === i ? { ...x, skills: x.skills.filter((_, kk) => kk !== k) } : x))} />
                       ))}
                     </div>
                   </div>
 
                   <div className="flex justify-end">
                     {projects.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => setProjects((prev) => prev.filter((_, idx) => idx !== i))}
-                        className="text-sm text-red-600 hover:text-red-700"
-                      >
-                        Remove project
-                      </button>
+                      <button type="button" onClick={() => setProjects((prev) => prev.filter((_, idx) => idx !== i))}
+                              className="text-sm text-red-600 hover:text-red-700">Remove project</button>
                     )}
                   </div>
                 </div>
               ))}
-              <button
-                type="button"
-                onClick={() =>
-                  setProjects((prev) => [
-                    ...prev,
-                    { name: "", link: "", description: "", skills: [], bullets: [{ text: "" }] },
-                  ])
-                }
-                className="text-sm text-zinc-700 hover:text-zinc-900"
-              >
-                + Add another project
-              </button>
+              <button type="button" onClick={() => setProjects((prev) => [...prev, { name: "", link: "", description: "", skills: [], bullets: [{ text: "" }] }])}
+                      className="text-sm text-zinc-700 hover:text-zinc-900">+ Add another project</button>
             </div>
           </Section>
 
-          {/* Achievements */}
           <Section title="Achievements" desc="Short one-liners that add punch.">
             <div className="grid gap-3">
               {achievements.map((a, i) => (
                 <div key={i} className="flex gap-3">
-                  <Input
-                    value={a}
-                    onChange={(e) =>
-                      setAchievements((prev) => prev.map((x, idx) => (idx === i ? e.target.value : x)))
-                    }
-                    placeholder="e.g., SIH 2024 finalist"
-                  />
+                  <Input value={a} onChange={(e) => setAchievements((prev) => prev.map((x, idx) => (idx === i ? e.target.value : x)))} placeholder="e.g., SIH 2024 finalist" />
                   {achievements.length > 1 && (
-                    <button
-                      type="button"
-                      className="text-sm text-red-600 hover:text-red-700"
-                      onClick={() => setAchievements((prev) => prev.filter((_, idx) => idx !== i))}
-                    >
-                      Remove
-                    </button>
+                    <button type="button" className="text-sm text-red-600 hover:text-red-700" onClick={() => setAchievements((prev) => prev.filter((_, idx) => idx !== i))}>Remove</button>
                   )}
                 </div>
               ))}
-              <button
-                type="button"
-                className="text-sm text-zinc-700 hover:text-zinc-900"
-                onClick={() => setAchievements((prev) => [...prev, ""])}
-              >
-                + Add achievement
-              </button>
+              <button type="button" className="text-sm text-zinc-700 hover:text-zinc-900" onClick={() => setAchievements((prev) => [...prev, ""])}>+ Add achievement</button>
             </div>
           </Section>
 
-          {/* Target Job */}
-          <Section
-            title="Target Job"
-            desc="This guides tailoring and relevance scoring for experiences, projects, and skills."
-          >
+          <Section title="Target Job" desc="This guides tailoring and relevance scoring for experiences, projects, and skills.">
             <div className="grid gap-3">
-              <Input
-                placeholder="Job title"
-                value={jobTitle}
-                onChange={(e) => setJobTitle(e.target.value)}
-              />
-              <Input
-                placeholder="Company (optional)"
-                value={jobCompany}
-                onChange={(e) => setJobCompany(e.target.value)}
-              />
-              <Textarea
-                placeholder="Paste the job description…"
-                value={jobDesc}
-                onChange={(e) => setJobDesc(e.target.value)}
-              />
+              <Input placeholder="Job title" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
+              <Input placeholder="Company (optional)" value={jobCompany} onChange={(e) => setJobCompany(e.target.value)} />
+              <Textarea placeholder="Paste the job description…" value={jobDesc} onChange={(e) => setJobDesc(e.target.value)} />
             </div>
           </Section>
 
-
-          {/* Output Options */}
           <Section title="Output Options" desc="Control how much goes into the resume.">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Field label="Experiences" hint="0–4">
-                <NumberField min={0} max={4} value={maxExperiences} onChange={setMaxExperiences} />
-              </Field>
-              <Field label="Projects" hint="0–4">
-                <NumberField min={0} max={4} value={maxProjects} onChange={setMaxProjects} />
-              </Field>
-              <Field label="Skills" hint="0–15">
-                <NumberField min={0} max={15} value={maxSkills} onChange={setMaxSkills} />
-              </Field>
-              <Field label="Achievements" hint="0–7">
-                <NumberField min={0} max={7} value={maxAchievements} onChange={setMaxAchievements} />
-              </Field>
+              <Field label="Experiences" hint="0–4"><NumberField min={0} max={4} value={maxExperiences} onChange={setMaxExperiences} /></Field>
+              <Field label="Projects" hint="0–4"><NumberField min={0} max={4} value={maxProjects} onChange={setMaxProjects} /></Field>
+              <Field label="Skills" hint="0–15"><NumberField min={0} max={15} value={maxSkills} onChange={setMaxSkills} /></Field>
+              <Field label="Achievements" hint="0–7"><NumberField min={0} max={7} value={maxAchievements} onChange={setMaxAchievements} /></Field>
             </div>
           </Section>
 
@@ -1227,31 +769,22 @@ export default function ResumeBuilder() {
                   </svg>
                   Generating…
                 </>
-              ) : (
-                "Generate resume"
-              )}
+              ) : "Generate resume"}
             </PrimaryButton>
-            {pdfBase64 ? (
-              <SecondaryButton type="button" onClick={downloadPdf}>
-                Download PDF
-              </SecondaryButton>
-            ) : null}
-            <SecondaryButton type="button" onClick={() => navigate("/preview")}>
-              Preview last build
-            </SecondaryButton>
+
+            {pdfBase64 ? <SecondaryButton type="button" onClick={downloadPdf}>Download PDF</SecondaryButton> : null}
+            <SecondaryButton type="button" onClick={() => navigate("/preview")}>Preview last build</SecondaryButton>
             {error ? <span className="text-sm text-red-600">{error}</span> : null}
           </div>
         </form>
 
         {/* Side card (sticky live summary / debug) */}
-        <aside className="grid gap-6 md:sticky md:top-[76px] h-max">
+        <aside className="grid gap-6 md:sticky md:top-[76px] h-max min-w-0">
           <Section title="Preview info" desc="Quick glance at what you’ve entered.">
             <ul className="space-y-2 text-sm text-zinc-700">
               <li><strong>{name || "—"}</strong> • {location || "—"}</li>
               <li>{email || "—"} • {phone || "—"}</li>
-              <li className="truncate">
-                {links.filter((l) => l.url).map((l) => `${l.label}: ${l.url}`).join(" • ") || "—"}
-              </li>
+              <li className="truncate">{links.filter((l) => l.url).map((l) => `${l.label}: ${l.url}`).join(" • ") || "—"}</li>
               <li>Education: {educations.filter((e) => e.school.trim()).length}</li>
               <li>Skills: {skills.length}</li>
               <li>Experiences: {experiences.filter((e) => e.title || e.company).length}</li>
@@ -1259,17 +792,20 @@ export default function ResumeBuilder() {
               <li>Achievements: {achievements.filter(Boolean).length}</li>
               <li className="mt-2">Target: <em>{jobTitle || "—"}</em> @ {jobCompany || "—"}</li>
             </ul>
+
             {latex ? (
               <details className="mt-4">
                 <summary className="cursor-pointer text-sm text-zinc-600">Show LaTeX (debug)</summary>
-                <pre className="mt-2 max-h-64 overflow-auto rounded-lg bg-zinc-950/90 p-3 text-xs text-zinc-50">{latex}</pre>
+                {/* constrain width/height so the section never overflows and “pushes” the grid */}
+                <pre className="mt-2 max-h-64 overflow-auto rounded-lg bg-zinc-950/90 p-3 text-xs text-zinc-50 whitespace-pre-wrap break-words">
+                  {latex}
+                </pre>
               </details>
             ) : null}
           </Section>
         </aside>
       </main>
 
-      {/* Toast popup */}
       <Toast message={toast} onClose={() => setToast(null)} />
     </div>
   );
