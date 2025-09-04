@@ -50,7 +50,9 @@ Rules:
 - Preserve original date strings even if imperfect.
 """
 
-SYSTEM_PROMPT = f"""
+PACKAGES = ", ".join(ALLOWED_PACKAGES)
+
+SYSTEM_PROMPT_TEMPLATE = r"""
 You generate COMPLETE LaTeX resumes that are ATS-optimized and match a clean, professional, lined style
 (UPPERCASE section headers with a thin rule; role/company/location inline with right-aligned dates).
 Internships are merged into Work Experience (no separate section).
@@ -59,49 +61,72 @@ allow a second page rather than cramming or shrinking text.
 
 Requirements:
 - Output ONLY a full LaTeX document, no code fences or commentary.
-- Use ONLY these packages: {", ".join(ALLOWED_PACKAGES)}.
-- No \\input, \\include, \\write18, \\openout, \\read, \\filecontents, \\csname, or shell-escape.
-- Escape special chars (\\, %, $, #, &, _, {{, }}, ~, ^).
-- Use consistent typography across all sections (same body font and size). Do NOT use \\textit, \\emph, \\itshape, or \\small in body text.
+- Use ONLY these packages: {PACKAGES}.
+- No \input, \include, \write18, \openout, \read, \filecontents, \csname, or shell-escape.
+- Escape special chars (\, %, $, #, &, _, {, }, ~, ^).
+- Use consistent typography across all sections (same body font and size). Do NOT use \textit, \emph, \itshape, or \small in body text.
 - Prefer one page with compact spacing; NEVER force it by reducing font size below 11pt or over-tightening spacing.
 - ATS best practices: strong action verbs, quantified impact when provided, relevant keywords (no stuffing), no pronouns,
   ≤ ~25 words per bullet, MAX 3 bullets per item (prefer 1 or 3).
 - Present tense for current roles; past tense for previous.
 - Do NOT invent facts. Use only provided data. If no metric is given, use qualitative impact language without fabricating numbers.
+- Separator hygiene: NEVER output dangling punctuation or separators (no trailing “---”, “—”, “-”, “:”, semicolons, or commas).
 
 You will receive:
 - 'user'   : already PRUNED to contain at most the selected items to show.
 - 'picked' : the same selected items, if you prefer that view.
 - 'job'    : the target job spec.
-- 'limits' : {{ maxExperiences, maxProjects, maxSkills, maxAchievements }}.
+- 'limits' : { maxExperiences, maxProjects, maxSkills, maxAchievements }.
+- 'options': may include { tightResume: boolean }.
 
 STRICTLY OBEY 'limits':
 - Do not render more items than the maxima.
 - If fewer items are available, render fewer (never fabricate).
 - Place internships within the Work Experience section.
 
+# --- Tighter layout switch ---
+If and only if 'options.tightResume' is true, you MUST:
+- Keep 11pt body size, but use a denser whitespace layout.
+- Replace the default geometry with: \usepackage[margin=0.5in]{geometry}.
+- Keep \pagenumbering{gobble}.
+- Make vertical whitespace minimal (without cramping):
+  * \setlength{\parskip}{0pt}
+  * \setlist[itemize]{nosep,leftmargin=*,itemsep=0.5pt,topsep=1pt,parsep=0pt,partopsep=0pt}
+  * Tighten the section rule block to nearly flush spacing:
+    \makeatletter
+    \@ifundefined{Section}{%
+      \newcommand{\Section}[1]{\vspace{0pt}\textbf{\MakeUppercase{#1}}\par\vspace{0.5pt}\hrule height 0.6pt\vspace{3pt}}%
+    }{%
+      \renewcommand{\Section}[1]{\vspace{0pt}\textbf{\MakeUppercase{#1}}\par\vspace{0.5pt}\hrule height 0.6pt\vspace{3pt}}%
+    }
+    \makeatother
+- Use \raggedbottom to avoid vertical stretch that creates extra white bands.
+- Prefer 1–2 bullets per item when content allows (never invent content).
+
+If 'options.tightResume' is false or missing, keep the normal layout and spacing.
+
 Use EXACTLY this preamble template and macros, then use these macros consistently in the body:
 
-\\documentclass[11pt]{{article}}
-\\usepackage[margin=0.7in]{{geometry}}
-\\usepackage{{hyperref}}
-\\usepackage{{parskip}}
-\\usepackage{{enumitem}}
-\\pagenumbering{{gobble}}
-\\setlist[itemize]{{nosep,leftmargin=*}}
+\documentclass[11pt]{article}
+\usepackage[margin=0.7in]{geometry}
+\usepackage{hyperref}
+\usepackage{parskip}
+\usepackage{enumitem}
+\pagenumbering{gobble}
+\setlist[itemize]{nosep,leftmargin=*}
 
 % --- Helpers for lined, professional look (NO extra packages required) ---
-\\newcommand{{\\Name}}[1]{{{{\\LARGE\\bfseries #1}}}}
-\\newcommand{{\\ContactLine}}[1]{{\\begin{{center}}\\small #1\\end{{center}}}}
-\\newcommand{{\\Section}}[1]{{\\vspace{{2pt}}\\textbf{{\\MakeUppercase{{#1}}}}\\par\\vspace{{2pt}}\\hrule height 0.6pt\\vspace{{6pt}}}}
-\\newcommand{{\\RoleRow}}[4]{{\\textbf{{#1}} --- #2, #3 \\hfill {{\\small #4}}\\par}}
+\newcommand{\Name}[1]{{\LARGE\bfseries #1}}
+\newcommand{\ContactLine}[1]{\begin{center}\small #1\end{center}}
+\newcommand{\Section}[1]{\vspace{2pt}\textbf{\MakeUppercase{#1}}\par\vspace{2pt}\hrule height 0.6pt\vspace{6pt}}
+\newcommand{\RoleRow}[4]{\textbf{#1} --- #2, #3 \hfill {\small #4}\par}
 
 Layout rules (tight & clean, never cramped):
-1) Keep whitespace compact; avoid large vertical gaps. Do NOT add extra blank lines or excessive \\vspace.
+1) Keep whitespace compact; avoid large vertical gaps. Do NOT add extra blank lines or excessive \vspace.
 
 2) SKILLS section — dynamic labels and safe fallback:
    - If 'user.skills' is empty or missing, OMIT the Skills section entirely.
-   - Otherwise, use \\Section{{Skills}} (same header + rule as others) and render one or two labeled rows in the SAME body font/size (no italics/small), comma-separated, no bullets.
+   - Otherwise, use \Section{Skills} (same header + rule as others) and render one or two labeled rows in the SAME body font/size (no italics/small), comma-separated, no bullets.
    - Choose labels dynamically based on the skills and job description:
        a) If many programming/CS/cloud items (Python/JavaScript/C++/Java/Go; React/Node; AWS/Docker/K8s),
           use labels: **Languages/CS** and **Frameworks/Tools**.
@@ -111,8 +136,8 @@ Layout rules (tight & clean, never cramped):
    - Partition 'skills' into at most two buckets using the above logic.
      Order within each row by relevance to 'job.description' first, then by importance/frequency.
    - Formatting (exact):
-       \\noindent \\textbf{{<Label A>:}} skill1, skill2, skill3\\\\
-       \\textbf{{<Label B>:}} skill4, skill5, skill6
+       \noindent \textbf{<Label A>:} skill1, skill2, skill3\\
+       \textbf{<Label B>:} skill4, skill5, skill6
      If only one bucket has content, render just the first row.
    - Respect 'limits.maxSkills': show at most that many skills across both rows.
    - Normalize names (e.g., "Node.js" not "nodejs"), deduplicate case-insensitively.
@@ -130,13 +155,27 @@ Layout rules (tight & clean, never cramped):
 4) SECTION ORDER:
    - Contact block, then optionally Skills (if present), then Education, Work Experience, Projects, Achievements.
 
-5) Education, Work Experience, Projects, Achievements use \\Section{{...}} with the thin rule and \\RoleRow exactly once per item.
+5) Formatting by section:
+   - Education & Work Experience: Use \RoleRow{Title}{Company/Org}{Location}{Dates}.
+   - Projects (NO dangling separators):
+       * Do NOT use \RoleRow unless you truly have Title, Org, Location, and Dates.
+       * Print the header like this, only adding parts that exist:
+         \textbf{<Project Name>}%
+         [ \textemdash{} <Short Tagline>]%
+         [ \hfill \href{<URL>}{<Display>}]
+       * Include the em-dash only if a non-empty tagline exists.
+       * Include the link block only if a URL exists.
+       * Never leave a bare em-dash, comma, or colon with nothing after it.
+       * Follow with 1 or 3 concise bullets.
 
 6) If the content cannot fit cleanly on one page while preserving readability and spacing, allow a second page.
    Never compress by shrinking fonts, cramming line spacing, or removing necessary structure.
 
 Generate the final LaTeX document using only the allowed packages and the macros above. Do not add any other packages or external files.
 """
+
+# Finalize the prompt (no f-string hazards)
+SYSTEM_PROMPT = SYSTEM_PROMPT_TEMPLATE.replace("{PACKAGES}", PACKAGES)
 
 def _vision_client() -> ChatGoogleGenerativeAI:
     return ChatGoogleGenerativeAI(
@@ -184,7 +223,7 @@ def parse_resume_bytes(data: bytes, mime: str) -> Dict[str, Any]:
 def _client():
     return ChatGoogleGenerativeAI(
         model=os.getenv("MODEL_NAME", "gemini-2.5-flash"),
-        temperature=float(os.getenv("TEMPERATURE", "0.2")),
+        temperature=float(os.getenv("TEMPERATURE", "0.0")),
         convert_system_message_to_human=True,
     )
 
@@ -200,7 +239,7 @@ def render_latex_with_llm(
         "maxSkills": int(options.get("maxSkills", 10)),
         "maxAchievements": int(options.get("maxAchievements", 3)),
     }
-    payload = {"picked": picked, "user": user, "job": job, "limits": limits}
+    payload = {"picked": picked, "user": user, "job": job, "limits": limits, "options": { "tightResume": bool(options.get("tightResume", False)) }}
     msgs = [SystemMessage(content=SYSTEM_PROMPT),
             HumanMessage(content=json.dumps(payload, ensure_ascii=False))]
     ai = _client().invoke(msgs)

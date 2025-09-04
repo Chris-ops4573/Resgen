@@ -56,6 +56,7 @@ class Options(BaseModel):
     maxSkills: int = 10
     maxAchievements: int = 3
     compile: bool = True  # return pdfBase64
+    tightResume: bool = False
 
 class GenerateRequest(BaseModel):
     user: UserProfile

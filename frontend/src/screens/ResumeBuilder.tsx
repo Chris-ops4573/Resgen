@@ -5,6 +5,7 @@ import ResumeParser from "../components/ResumeParser";
 /* point the frontend to FastAPI (port 8000) */
 const RAW_API_BASE = (import.meta as any)?.env?.VITE_API_BASE || "http://35.90.41.218:8000";
 const API_BASE = String(RAW_API_BASE).replace(/\/+$/, "");
+const BUILDER_STORAGE_KEY = "resgen_builder_state_v1";
 
 /* ---------------- Types ---------------- */
 type LinkItem = { label: string; url: string };
@@ -31,6 +32,42 @@ type Education = {
   graduation?: string;
   details: string[];
 };
+
+type BuilderSnapshot = {
+  name: string;
+  email: string;
+  phone: string;
+  location: string;
+  links: LinkItem[];
+  educations: Education[];
+  skills: string[];
+  experiences: Experience[];
+  projects: Project[];
+  achievements: string[];
+  jobTitle: string;
+  jobCompany: string;
+  jobDesc: string;
+  maxExperiences: number;
+  maxProjects: number;
+  maxSkills: number;
+  maxAchievements: number;
+  tightResume: boolean;
+};
+
+function readSnapshot(): BuilderSnapshot | null {
+  try {
+    const raw = sessionStorage.getItem(BUILDER_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as BuilderSnapshot) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSnapshot(s: BuilderSnapshot) {
+  try {
+    sessionStorage.setItem(BUILDER_STORAGE_KEY, JSON.stringify(s));
+  } catch {}
+}
 
 /* ---------------- Shared UI atoms ---------------- */
 const ACCENT = "#0ea5e9";
@@ -284,6 +321,7 @@ export default function ResumeBuilder() {
   const [maxProjects, setMaxProjects] = useState(2);
   const [maxSkills, setMaxSkills] = useState(10);
   const [maxAchievements, setMaxAchievements] = useState(3);
+  const [tightResume, setTightResume] = useState(false);
 
   // submit state
   const [busy, setBusy] = useState(false);
@@ -293,6 +331,54 @@ export default function ResumeBuilder() {
 
   // toast
   const [toast, setToast] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const snap = readSnapshot();
+    if (!snap) return;
+
+    setName(snap.name || "");
+    setEmail(snap.email || "");
+    setPhone(snap.phone || "");
+    setLocation(snap.location || "");
+    setLinks(Array.isArray(snap.links) ? snap.links : []);
+    setEducations(Array.isArray(snap.educations) ? snap.educations : [{ school: "", degree: "", graduation: "", details: [""] }]);
+    setSkills(Array.isArray(snap.skills) ? snap.skills : []);
+    setExperiences(Array.isArray(snap.experiences) ? snap.experiences : [
+      { title: "", company: "", location: "", startDate: "", endDate: "Present", skills: [], bullets: [{ text: "" }] },
+    ]);
+    setProjects(Array.isArray(snap.projects) ? snap.projects : [
+      { name: "", link: "", description: "", skills: [], bullets: [{ text: "" }] },
+    ]);
+    setAchievements(Array.isArray(snap.achievements) ? snap.achievements : [""]);
+    setJobTitle(snap.jobTitle || "");
+    setJobCompany(snap.jobCompany || "");
+    setJobDesc(snap.jobDesc || "");
+    setMaxExperiences(Number.isFinite(snap.maxExperiences) ? snap.maxExperiences : 3);
+    setMaxProjects(Number.isFinite(snap.maxProjects) ? snap.maxProjects : 2);
+    setMaxSkills(Number.isFinite(snap.maxSkills) ? snap.maxSkills : 10);
+    setMaxAchievements(Number.isFinite(snap.maxAchievements) ? snap.maxAchievements : 3);
+    setTightResume(!!snap.tightResume);
+  }, []);
+
+  React.useEffect(() => {
+    const id = window.setTimeout(() => {
+      writeSnapshot({
+        name, email, phone, location,
+        links, educations, skills, experiences, projects, achievements,
+        jobTitle, jobCompany, jobDesc,
+        maxExperiences, maxProjects, maxSkills, maxAchievements,
+        tightResume,
+      });
+    }, 300);
+    return () => window.clearTimeout(id);
+  }, [
+    name, email, phone, location,
+    links, educations, skills, experiences, projects, achievements,
+    jobTitle, jobCompany, jobDesc,
+    maxExperiences, maxProjects, maxSkills, maxAchievements,
+    tightResume,
+  ]);
+
   const pop = (msg: string) => {
     setToast(msg);
     window.clearTimeout((pop as any)._t);
@@ -410,7 +496,7 @@ export default function ResumeBuilder() {
       };
 
       const job = { title: jobTitle, company: jobCompany, description: jobDesc };
-      const options = { maxExperiences, maxProjects, maxSkills, maxAchievements, compile: true };
+      const options = { maxExperiences, maxProjects, maxSkills, maxAchievements, compile: true, tightResume};
 
       const res = await fetch(`${API_BASE}/`, {
         method: "POST",
@@ -751,10 +837,45 @@ export default function ResumeBuilder() {
 
           <Section title="Output Options" desc="Control how much goes into the resume.">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Field label="Experiences" hint="0–4"><NumberField min={0} max={4} value={maxExperiences} onChange={setMaxExperiences} /></Field>
-              <Field label="Projects" hint="0–4"><NumberField min={0} max={4} value={maxProjects} onChange={setMaxProjects} /></Field>
-              <Field label="Skills" hint="0–15"><NumberField min={0} max={15} value={maxSkills} onChange={setMaxSkills} /></Field>
-              <Field label="Achievements" hint="0–7"><NumberField min={0} max={7} value={maxAchievements} onChange={setMaxAchievements} /></Field>
+              <Field label="Experiences" hint="0–4">
+                <NumberField min={0} max={4} value={maxExperiences} onChange={setMaxExperiences} />
+              </Field>
+              <Field label="Projects" hint="0–4">
+                <NumberField min={0} max={4} value={maxProjects} onChange={setMaxProjects} />
+              </Field>
+              <Field label="Skills" hint="0–15">
+                <NumberField min={0} max={15} value={maxSkills} onChange={setMaxSkills} />
+              </Field>
+              <Field label="Achievements" hint="0–7">
+                <NumberField min={0} max={7} value={maxAchievements} onChange={setMaxAchievements} />
+              </Field>
+            </div>
+
+            {/* New: Tighter resume toggle */}
+            <div className="mt-4 flex items-center justify-between rounded-xl border border-zinc-200 bg-white/70 px-4 py-3">
+              <div>
+                <div className="text-sm font-medium text-zinc-800">Tighter resume</div>
+                <div className="text-xs text-zinc-500">
+                  Use a denser layout (smaller margins + tighter bullet spacing) while keeping 11pt body size.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTightResume((v) => !v)}
+                className={[
+                  "relative h-7 w-12 rounded-full transition",
+                  tightResume ? "bg-zinc-900" : "bg-zinc-300"
+                ].join(" ")}
+                aria-pressed={tightResume}
+                aria-label="Toggle tighter resume"
+              >
+                <span
+                  className={[
+                    "absolute top-1 left-1 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                    tightResume ? "translate-x-5" : "translate-x-0"
+                  ].join(" ")}
+                />
+              </button>
             </div>
           </Section>
 
