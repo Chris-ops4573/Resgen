@@ -1,9 +1,9 @@
 import base64
 from typing import Dict, Any, Optional
 from tools import select_best_items
-from llm import render_latex_with_llm
-from latex_safety import sanitize_and_validate
-from pdf import compile_pdf
+from resgen.llm import render_latex_with_llm
+from resgen.latex_safety import sanitize_and_validate
+from resgen.pdf import compile_pdf
 
 def run_resume_pipeline(user: Dict[str, Any], job: Dict[str, Any], options: Optional[Dict[str, Any]] = None):
     options = options or {}
@@ -16,7 +16,6 @@ def run_resume_pipeline(user: Dict[str, Any], job: Dict[str, Any], options: Opti
 
     # 1) Pick top items per options (maxExperiences, maxProjects, maxSkills)
     picked = select_best_items(merged_user, job, options)
-
     # 2) HARD-CAP: prune the user payload so the LLM cannot see more than allowed
     pruned_user = {
         **user,

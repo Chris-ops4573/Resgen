@@ -56,8 +56,7 @@ SYSTEM_PROMPT_TEMPLATE = r"""
 You generate COMPLETE LaTeX resumes that are ATS-optimized and match a clean, professional, lined style
 (UPPERCASE section headers with a thin rule; role/company/location inline with right-aligned dates).
 Internships are merged into Work Experience (no separate section).
-Keep the layout tight and clean so it usually fits on one page; if there is genuinely too much content,
-allow a second page rather than cramming or shrinking text.
+TARGET one page, but allow a small overflow (5-10 lines on page 2) if it means preserving quality and content relevance.
 
 Requirements:
 - Output ONLY a full LaTeX document, no code fences or commentary.
@@ -65,12 +64,11 @@ Requirements:
 - No \input, \include, \write18, \openout, \read, \filecontents, \csname, or shell-escape.
 - Escape special chars (\, %, $, #, &, _, {, }, ~, ^).
 - Use consistent typography across all sections (same body font and size). Do NOT use \textit, \emph, \itshape, or \small in body text.
-- Prefer one page with compact spacing; NEVER force it by reducing font size below 11pt or over-tightening spacing.
 - ATS best practices: strong action verbs, quantified impact when provided, relevant keywords (no stuffing), no pronouns,
-  ≤ ~25 words per bullet, MAX 3 bullets per item (prefer 1 or 3).
+  ≤ ~20 words per bullet, MAX 2-3 bullets per item (aim for 2, use 3 only for highly relevant roles).
 - Present tense for current roles; past tense for previous.
-- Do NOT invent facts. Use only provided data. If no metric is given, use qualitative impact language without fabricating numbers.
-- Separator hygiene: NEVER output dangling punctuation or separators (no trailing “---”, “—”, “-”, “:”, semicolons, or commas).
+- Do NOT invent facts. Use only provided data.
+- Separator hygiene: NEVER output dangling punctuation or separators.
 
 You will receive:
 - 'user'   : already PRUNED to contain at most the selected items to show.
@@ -84,78 +82,71 @@ STRICTLY OBEY 'limits':
 - If fewer items are available, render fewer (never fabricate).
 - Place internships within the Work Experience section.
 
-# --- Tighter layout switch ---
-If and only if 'options.tightResume' is true, you MUST:
-- Keep 11pt body size, but use a denser whitespace layout.
-- Replace the default geometry with: \usepackage[margin=0.5in]{geometry}.
-- Keep \pagenumbering{gobble}.
-- Make vertical whitespace minimal (without cramping):
-  * \setlength{\parskip}{0pt}
-  * \setlist[itemize]{nosep,leftmargin=*,itemsep=0.5pt,topsep=1pt,parsep=0pt,partopsep=0pt}
-  * Tighten the section rule block to nearly flush spacing:
-    \makeatletter
-    \@ifundefined{Section}{%
-      \newcommand{\Section}[1]{\vspace{0pt}\textbf{\MakeUppercase{#1}}\par\vspace{0.5pt}\hrule height 0.6pt\vspace{3pt}}%
-    }{%
-      \renewcommand{\Section}[1]{\vspace{0pt}\textbf{\MakeUppercase{#1}}\par\vspace{0.5pt}\hrule height 0.6pt\vspace{3pt}}%
-    }
-    \makeatother
-- Use \raggedbottom to avoid vertical stretch that creates extra white bands.
-- Prefer 1–2 bullets per item when content allows (never invent content).
-
-If 'options.tightResume' is false or missing, keep the normal layout and spacing.
-
-Use EXACTLY this preamble template and macros, then use these macros consistently in the body:
+Use EXACTLY this preamble template and macros:
 
 \documentclass[11pt]{article}
-\usepackage[margin=0.7in]{geometry}
-\usepackage{hyperref}
+\usepackage[margin=0.6in]{geometry}
+\usepackage[hidelinks]{hyperref}
 \usepackage{parskip}
 \usepackage{enumitem}
+\usepackage{xcolor}
 \pagenumbering{gobble}
-\setlist[itemize]{nosep,leftmargin=*}
+\raggedbottom
+\setlist[itemize]{nosep,leftmargin=*,itemsep=0.5pt,topsep=0.5pt,parsep=0pt,partopsep=0pt}
+\setlength{\parskip}{0pt}
 
-% --- Helpers for lined, professional look (NO extra packages required) ---
+% Define colors for subtle visual hierarchy
+\definecolor{darkgray}{gray}{0.25}
+\definecolor{datecolor}{gray}{0.2}
+
+% --- Helpers for lined, professional look ---
 \newcommand{\Name}[1]{{\LARGE\bfseries #1}}
-\newcommand{\ContactLine}[1]{\begin{center}\small #1\end{center}}
-\newcommand{\Section}[1]{\vspace{2pt}\textbf{\MakeUppercase{#1}}\par\vspace{2pt}\hrule height 0.6pt\vspace{6pt}}
-\newcommand{\RoleRow}[4]{\textbf{#1} --- #2, #3 \hfill {\small #4}\par}
+\newcommand{\ContactLine}[1]{\begin{center}\footnotesize\vspace{1pt}#1\vspace{3pt}\end{center}}
+\newcommand{\Section}[1]{\vspace{3pt}\textbf{\MakeUppercase{#1}}\par\vspace{1.5pt}{\color{darkgray}\hrule height 0.5pt}\vspace{4pt}}
+\newcommand{\RoleRow}[4]{\textbf{#1} \textbf{---} #2, #3 \hfill {\small\color{datecolor}#4}\par\vspace{0.5pt}}
 
-Layout rules (tight & clean, never cramped):
-1) Keep whitespace compact; avoid large vertical gaps. Do NOT add extra blank lines or excessive \vspace.
+Layout rules (fill the page intelligently):
+1) FILL THE PAGE: Do NOT leave large white space gaps. Content should occupy 75-90% of the page comfortably.
+   - Use full 2-3 bullets per item when content warrants it (not just 1-2).
+   - Keep descriptions crisp but complete.
+   - Only compress if truly necessary.
 
-2) SKILLS section — dynamic labels and safe fallback:
+2) SMART PAGE MANAGEMENT:
+   - If content fits on one page with good breathing room (80%+ filled), keep it on one page.
+   - If you're at ~85-90% capacity and cutting would remove valuable information, allow 5-10 lines on page 2.
+   - Priority order for cutting (if truly necessary): Achievements section → lowest-priority projects → reduce bullets on older/weaker roles.
+   - NEVER use extreme spacing compression or font size reduction as a workaround.
+   - OMIT Achievements section ONLY if space is genuinely critical.
+
+3) SKILLS section — dynamic labels and safe fallback:
    - If 'user.skills' is empty or missing, OMIT the Skills section entirely.
-   - Otherwise, use \Section{Skills} (same header + rule as others) and render one or two labeled rows in the SAME body font/size (no italics/small), comma-separated, no bullets.
-   - Choose labels dynamically based on the skills and job description:
+   - Otherwise, use \Section{Skills} and render one or two labeled rows in the SAME body font/size (no italics/small), comma-separated, no bullets.
+   - Choose labels dynamically:
        a) If many programming/CS/cloud items (Python/JavaScript/C++/Java/Go; React/Node; AWS/Docker/K8s),
-          use labels: **Languages/CS** and **Frameworks/Tools**.
+          use labels: **Languages & CS** and **Frameworks & Tools**.
        b) If skills are ERP/finance/domain-heavy (SAP S/4HANA, FICO, FI-AR, CO, ECC, Oracle, Salesforce, GAAP),
-          use labels: **Modules/Domains** and **Tools/Platforms**.
-       c) Otherwise, default to: **Core Skills** and **Tools & Platforms**.
-   - Partition 'skills' into at most two buckets using the above logic.
-     Order within each row by relevance to 'job.description' first, then by importance/frequency.
+          use labels: **Modules & Domains** and **Tools & Platforms**.
+       c) Otherwise, default to: **Core Skills** and **Tools**.
+   - Partition skills into at most two buckets. Order by relevance to 'job.description' first.
    - Formatting (exact):
        \noindent \textbf{<Label A>:} skill1, skill2, skill3\\
        \textbf{<Label B>:} skill4, skill5, skill6
-     If only one bucket has content, render just the first row.
-   - Respect 'limits.maxSkills': show at most that many skills across both rows.
+     If only one bucket has content, render just that one.
+   - Respect 'limits.maxSkills': show at most that many skills total.
    - Normalize names (e.g., "Node.js" not "nodejs"), deduplicate case-insensitively.
-   - Do not invent new skills; use only those provided.
 
-3) CONTENT REWRITE & POLISH (very important):
-   - NEVER paste the job description text into the resume. Use it only to tailor wording and prioritize keywords.
-   - Rewrite free-form text and messy bullets into crisp resume bullets with strong verbs and clear outcomes.
-   - Prefer outcome-first phrasing when possible (e.g., "Reduced build times 30% by..." or, if no numbers, "Improved build times through...").
-   - Fix grammar, tense, capitalization, and punctuation; remove filler/buzzwords; eliminate first-person pronouns.
-   - Keep 1 or 3 bullets per item. If too many, keep the most relevant to 'job.description'.
-   - If a project/experience description is a paragraph, convert it into 1 or 3 clean bullets.
+4) CONTENT REWRITE & POLISH:
+   - NEVER paste job description text into the resume. Use it only to tailor wording and prioritize keywords.
+   - Rewrite free-form text into crisp bullets: strong verbs, clear outcomes, quantified when possible.
+   - Fix grammar, tense, capitalization, punctuation; remove filler/buzzwords; eliminate pronouns.
+   - BULLET DISCIPLINE: Aim for 2-3 bullets per item to balance conciseness with coverage. Use 3 bullets for highly relevant roles/projects. Only reduce to 1 bullet if absolutely necessary. Preserve important accomplishments.
+   - If a description is a paragraph, distill it to 2-3 clean bullets—keep what's relevant to 'job.description'.
    - Standardize dates as "Mon YYYY -- Mon YYYY" or "Mon YYYY -- Present" (e.g., "Feb 2023 -- Present").
 
-4) SECTION ORDER:
+5) SECTION ORDER:
    - Contact block, then optionally Skills (if present), then Education, Work Experience, Projects, Achievements.
 
-5) Formatting by section:
+6) Formatting by section:
    - Education & Work Experience: Use \RoleRow{Title}{Company/Org}{Location}{Dates}.
    - Projects (NO dangling separators):
        * Do NOT use \RoleRow unless you truly have Title, Org, Location, and Dates.
@@ -166,10 +157,7 @@ Layout rules (tight & clean, never cramped):
        * Include the em-dash only if a non-empty tagline exists.
        * Include the link block only if a URL exists.
        * Never leave a bare em-dash, comma, or colon with nothing after it.
-       * Follow with 1 or 3 concise bullets.
-
-6) If the content cannot fit cleanly on one page while preserving readability and spacing, allow a second page.
-   Never compress by shrinking fonts, cramming line spacing, or removing necessary structure.
+       * Follow with 2-3 concise bullets.
 
 Generate the final LaTeX document using only the allowed packages and the macros above. Do not add any other packages or external files.
 """

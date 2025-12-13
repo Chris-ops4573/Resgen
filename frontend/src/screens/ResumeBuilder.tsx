@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import ResumeParser from "../components/ResumeParser";
 
 /* point the frontend to FastAPI (port 8000) */
-const RAW_API_BASE = (import.meta as any)?.env?.VITE_API_BASE || "http://35.90.41.218:8000";
+const RAW_API_BASE = (import.meta as any)?.env?.VITE_API_BASE || "http://localhost:8000";
 const API_BASE = String(RAW_API_BASE).replace(/\/+$/, "");
 const BUILDER_STORAGE_KEY = "resgen_builder_state_v1";
 
@@ -324,10 +324,19 @@ export default function ResumeBuilder() {
   const [tightResume, setTightResume] = useState(false);
 
   // submit state
-  const [busy, setBusy] = useState(false);
+  const [isGeneratingResume, setIsGeneratingResume] = useState(false);
+  const [isStartingInterview, setIsStartingInterview] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pdfBase64, setPdfBase64] = useState<string | null>(null);
   const [latex, setLatex] = useState<string | null>(null);
+
+  // interview start state
+  const [startingInterview, setStartingInterview] = useState(false);
+  const [countdown, setCountdown] = useState(5);
+  const [interviewSessionId, setInterviewSessionId] = useState<string | null>(null);
+  const [firstQuestion, setFirstQuestion] = useState<string | null>(null);
+
+
 
   // toast
   const [toast, setToast] = useState<string | null>(null);
@@ -455,6 +464,40 @@ export default function ResumeBuilder() {
     setSkillInput("");
   }
 
+  function buildResumeText(): string {
+    const lines: string[] = [];
+
+    lines.push(name);
+    if (email) lines.push(email);
+    if (phone) lines.push(phone);
+    if (location) lines.push(location);
+
+    if (skills.length) {
+      lines.push("\nSkills:");
+      lines.push(skills.join(", "));
+    }
+
+    if (experiences.length) {
+      lines.push("\nExperience:");
+      experiences.forEach((e) => {
+        if (!e.title && !e.company) return;
+        lines.push(`${e.title || ""} @ ${e.company || ""}`);
+        e.bullets.forEach((b) => b.text && lines.push(`- ${b.text}`));
+      });
+    }
+
+    if (projects.length) {
+      lines.push("\nProjects:");
+      projects.forEach((p) => {
+        if (!p.name) return;
+        lines.push(p.name);
+        p.bullets.forEach((b) => b.text && lines.push(`- ${b.text}`));
+      });
+    }
+
+    return lines.join("\n");
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -472,7 +515,7 @@ export default function ResumeBuilder() {
     if (!name) { pop("Please enter your Name."); return; }
     if (!canSubmit) { pop("Please add at least one Experience or Project."); return; }
 
-    setBusy(true);
+    setIsGeneratingResume(true);
     setError(null);
     setPdfBase64(null);
     setLatex(null);
@@ -518,9 +561,70 @@ export default function ResumeBuilder() {
       setError(err?.message || "Something went wrong");
       pop(err?.message || "Request failed. Check your backend (CORS, URL, logs).");
     } finally {
-      setBusy(false);
+      setIsGeneratingResume(false);
     }
   }
+
+  async function startInterview() {
+    if (!name || (!jobTitle && !jobDesc)) {
+      pop("Please enter your name and a target job before starting the interview.");
+      return;
+    }
+
+    try {
+      setIsStartingInterview(true);
+
+      const payload = {
+        job_description: jobDesc || jobTitle,
+        resume: buildResumeText(),
+        candidate_name: name,
+        target_role: jobTitle,
+        interview_depth: "medium",
+        interview_style: "mixed",
+      };
+
+      const res = await fetch(`${API_BASE}/interview/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Failed to start interview");
+
+      const data = await res.json();
+
+      setInterviewSessionId(data.session_id ?? null);
+      setFirstQuestion(data.question ?? null);
+      setCountdown(5);
+      setStartingInterview(true);
+
+    } catch (err: any) {
+      pop(err?.message || "Could not start interview");
+    } finally {
+      setIsStartingInterview(false);
+    }
+  }
+
+  React.useEffect(() => {
+    if (!startingInterview) return;
+
+    if (countdown <= 0 && interviewSessionId && firstQuestion) {
+      navigate(`/interview/${interviewSessionId}`, {
+        state: {
+          firstQuestion
+        },
+      });
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setCountdown((c) => c - 1);
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [startingInterview, countdown, interviewSessionId, firstQuestion, navigate]);
+
+
 
   function downloadPdf() {
     if (!pdfBase64) return;
@@ -879,11 +983,11 @@ export default function ResumeBuilder() {
             </div>
           </Section>
 
-          <div className="flex items-center gap-3">
-            <PrimaryButton type="submit" disabled={busy}>
-              {busy ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <PrimaryButton type="submit" disabled={isGeneratingResume}>
+              {isGeneratingResume ? (
                 <>
-                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" fill="none" strokeLinecap="round" />
                   </svg>
@@ -891,6 +995,25 @@ export default function ResumeBuilder() {
                 </>
               ) : "Generate resume"}
             </PrimaryButton>
+
+            <PrimaryButton
+              type="button"
+              onClick={startInterview}
+              disabled={isStartingInterview}
+              className="bg-gradient-to-b from-indigo-600 to-indigo-800"
+            >
+              {isStartingInterview ? (
+              <>
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" fill="none" strokeLinecap="round" />
+                </svg>
+                Generating…
+              </>
+              ) : "Start interview"}
+            </PrimaryButton>
+
+
 
             {pdfBase64 ? <SecondaryButton type="button" onClick={downloadPdf}>Download PDF</SecondaryButton> : null}
             <SecondaryButton type="button" onClick={() => navigate("/preview")}>Preview last build</SecondaryButton>
@@ -927,6 +1050,18 @@ export default function ResumeBuilder() {
       </main>
 
       <Toast message={toast} onClose={() => setToast(null)} />
+      {startingInterview && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="rounded-2xl bg-white px-10 py-8 text-center shadow-xl border border-zinc-200">
+            <div className="text-sm text-zinc-600 mb-2">
+              Interview starting in
+            </div>
+            <div className="text-5xl font-semibold text-zinc-900">
+              {countdown}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
