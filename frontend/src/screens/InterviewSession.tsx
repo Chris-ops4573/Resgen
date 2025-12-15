@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 
 const API_BASE =
-  (import.meta as any)?.env?.VITE_API_BASE || "http://35.90.41.218:8000";
+  (import.meta as any)?.env?.VITE_API_BASE;
 
 type LocationState = {
   firstQuestion?: string;
