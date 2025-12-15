@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import ResumeParser from "../components/ResumeParser";
 
 /* point the frontend to FastAPI (port 8000) */
-const RAW_API_BASE = (import.meta as any)?.env?.VITE_API_BASE;
+const RAW_API_BASE = (import.meta as any)?.env?.VITE_API_BASE || "http://35.90.41.244:8000";
 const API_BASE = String(RAW_API_BASE).replace(/\/+$/, "");
 const BUILDER_STORAGE_KEY = "resgen_builder_state_v1";
 
