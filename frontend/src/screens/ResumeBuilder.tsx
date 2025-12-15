@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import ResumeParser from "../components/ResumeParser";
 
 /* point the frontend to FastAPI (port 8000) */
-const RAW_API_BASE = (import.meta as any)?.env?.VITE_API_BASE || "http://localhost:8000";
+const RAW_API_BASE = (import.meta as any)?.env?.VITE_API_BASE;
 const API_BASE = String(RAW_API_BASE).replace(/\/+$/, "");
 const BUILDER_STORAGE_KEY = "resgen_builder_state_v1";
 
@@ -1012,8 +1012,6 @@ export default function ResumeBuilder() {
               </>
               ) : "Start interview"}
             </PrimaryButton>
-
-
 
             {pdfBase64 ? <SecondaryButton type="button" onClick={downloadPdf}>Download PDF</SecondaryButton> : null}
             <SecondaryButton type="button" onClick={() => navigate("/preview")}>Preview last build</SecondaryButton>

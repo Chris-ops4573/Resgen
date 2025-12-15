@@ -1,5 +1,6 @@
 # main.py
 from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from model.models import GenerateRequest, GenerateResponse, ParseResponse, UserProfile
 from resgen.pipeline import run_resume_pipeline
@@ -51,10 +52,11 @@ def health():
 @app.post("/", response_model=GenerateResponse)
 async def generate(req: GenerateRequest):
     try:
-        out = run_resume_pipeline(
+        out = await run_in_threadpool(
+            run_resume_pipeline,    
             req.user.model_dump(),
             req.job.model_dump(),
-            (req.options or {}).model_dump() if req.options else {}
+            (req.options or {}).model_dump() if req.options else {}                      
         )
         return GenerateResponse(**out)
     except Exception as e:
@@ -67,6 +69,11 @@ async def parse_resume(file: UploadFile = File(...)):
         data = await file.read()
         mime = file.content_type or "application/octet-stream"
         parsed_dict = parse_resume_bytes(data, mime)
+        parsed_dict = await run_in_threadpool(
+            parse_resume_bytes,
+            data,
+            mime
+        )
         user = UserProfile(**parsed_dict)  # validate/shape to your schema
         return ParseResponse(user=user)
     except Exception as e:
@@ -75,27 +82,35 @@ async def parse_resume(file: UploadFile = File(...)):
 
 @app.post("/interview/transcribe")
 async def transcribe_audio(audio: UploadFile = File(...)):
+    in_path = None
+    out_path = None
+
     try:
-        # Save uploaded webm
+        # 1. Save uploaded audio (async-safe)
         with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as in_f:
             in_f.write(await audio.read())
             in_path = in_f.name
 
-        # Convert to WAV (PCM)
         out_path = in_path.replace(".webm", ".wav")
-        subprocess.run(
+
+        # 2. Run FFmpeg in threadpool (NON-BLOCKING)
+        await run_in_threadpool(
+            subprocess.run,
             ["ffmpeg", "-y", "-i", in_path, "-ac", "1", "-ar", "16000", out_path],
             check=True,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
         )
 
-        # Send WAV to OpenAI
-        with open(out_path, "rb") as f:
-            transcript = client.audio.transcriptions.create(
-                file=f,
-                model="gpt-4o-transcribe"
-            )
+        # 3. Call OpenAI transcription in threadpool (NON-BLOCKING)
+        def transcribe():
+            with open(out_path, "rb") as f:
+                return client.audio.transcriptions.create(
+                    file=f,
+                    model="gpt-4o-transcribe"
+                )
+
+        transcript = await run_in_threadpool(transcribe)
 
         return {"transcript": transcript.text}
 
@@ -103,9 +118,13 @@ async def transcribe_audio(audio: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
     finally:
-        for p in [locals().get("in_path"), locals().get("out_path")]:
+        # 4. Guaranteed cleanup
+        for p in (in_path, out_path):
             if p and os.path.exists(p):
-                os.remove(p)
+                try:
+                    os.remove(p)
+                except Exception:
+                    pass
 
 @app.post("/interview/start", response_model=InterviewQuestionResponse)
 async def start_interview(request: StartInterviewRequest):
@@ -133,8 +152,8 @@ async def start_interview(request: StartInterviewRequest):
             "interview_style": request.interview_style,
             "final_assessment": None,
         }
-        
-        state = run_interview_turn(state, answer=None)
+
+        state = await run_in_threadpool(run_interview_turn, state, answer=None)
         
         interview_sessions[state["session_id"]] = state
         
@@ -160,8 +179,8 @@ async def submit_answer(request: SubmitAnswerRequest):
             raise HTTPException(status_code=404, detail="Interview session not found")
         
         state = interview_sessions[request.session_id]
-        
-        state = run_interview_turn(state, answer=request.answer)
+
+        state = await run_in_threadpool(run_interview_turn, state, answer = request.answer)
         
         interview_sessions[request.session_id] = state
         

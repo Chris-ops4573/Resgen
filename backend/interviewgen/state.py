@@ -29,7 +29,7 @@ class InterviewState(TypedDict):
     turn: int
     max_turns: int
     questions_asked: List[str]
-    topics_covered: Dict[str, bool]
+    topics_covered: Dict[str, Dict[str, Any]]
     current_question: Optional[str]
     current_answer: Optional[str]
     current_assessment: Optional[Assessment]

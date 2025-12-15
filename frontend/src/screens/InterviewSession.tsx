@@ -55,6 +55,7 @@ export default function InterviewSession() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const location = useLocation();
   const state = location.state as LocationState | null;
+  const [isTranscribing, setIsTranscribing] = useState(false);
 
   const [question, setQuestion] = useState<string | null>(
     state?.firstQuestion ?? null
@@ -113,6 +114,7 @@ export default function InterviewSession() {
 
   async function sendAudioForTranscription(audioBlob: Blob) {
     try {
+      setIsTranscribing(true);
       const formData = new FormData();
       formData.append("audio", audioBlob, "answer.webm");
 
@@ -127,6 +129,8 @@ export default function InterviewSession() {
       setAnswer(data.transcript); // Editable text
     } catch (err) {
       alert("Failed to transcribe audio");
+    } finally{
+      setIsTranscribing(false);
     }
   }
 
@@ -292,20 +296,35 @@ if (finalAssessment) {
           {/* Mic */}
           <div className="flex items-center gap-4 mb-6">
             <button
-              onClick={isRecording ? stopRecording : startRecording}
+              onClick={
+                isTranscribing
+                  ? undefined
+                  : isRecording
+                  ? stopRecording
+                  : startRecording
+              }
+              disabled={isTranscribing}
               className={[
-                "h-14 w-14 rounded-full text-white text-xl flex items-center justify-center",
+                "h-14 w-14 rounded-full flex items-center justify-center",
                 "shadow-lg transition active:translate-y-[1px]",
                 isRecording
-                  ? "bg-red-600 animate-pulse"
-                  : "bg-gradient-to-b from-indigo-600 to-indigo-800 hover:from-indigo-500",
+                  ? "bg-red-600 animate-pulse text-white"
+                  : "bg-gradient-to-b from-indigo-600 to-indigo-800 hover:from-indigo-500 text-white",
+                isTranscribing && "opacity-60 cursor-not-allowed",
               ].join(" ")}
             >
-              🎤
+              {isTranscribing ? (
+                <span className="h-6 w-6 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+              ) : (
+                "🎤"
+              )}
             </button>
-
             <div className="text-sm text-zinc-600">
-              {isRecording ? "Listening… click again to stop" : "Tap to record your answer"}
+              {isRecording
+                ? "Listening… click again to stop"
+                : isTranscribing
+                ? "Transcribing your answer…"
+                : "Tap to record your answer"}
             </div>
           </div>
 
