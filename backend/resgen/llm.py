@@ -69,6 +69,7 @@ Requirements:
 - Present tense for current roles; past tense for previous.
 - Do NOT invent facts. Use only provided data.
 - Separator hygiene: NEVER output dangling punctuation or separators.
+- Contact line rule: NEVER use \\ inside \ContactLine{}. Separate contact items with \textbullet{} or spaces only.
 
 You will receive:
 - 'user'   : already PRUNED to contain at most the selected items to show.
@@ -101,7 +102,7 @@ Use EXACTLY this preamble template and macros:
 
 % --- Helpers for lined, professional look ---
 \newcommand{\Name}[1]{{\LARGE\bfseries #1}}
-\newcommand{\ContactLine}[1]{\begin{center}\footnotesize\vspace{1pt}#1\vspace{3pt}\end{center}}
+\newcommand{\ContactLine}[1]{\par\begin{center}\footnotesize #1\end{center}\par\vspace{2pt}}
 \newcommand{\Section}[1]{\vspace{3pt}\textbf{\MakeUppercase{#1}}\par\vspace{1.5pt}{\color{darkgray}\hrule height 0.5pt}\vspace{4pt}}
 \newcommand{\RoleRow}[4]{\textbf{#1} \textbf{---} #2, #3 \hfill {\small\color{datecolor}#4}\par\vspace{0.5pt}}
 
@@ -116,7 +117,7 @@ Layout rules (fill the page intelligently):
    - If you're at ~85-90% capacity and cutting would remove valuable information, allow 5-10 lines on page 2.
    - Priority order for cutting (if truly necessary): Achievements section → lowest-priority projects → reduce bullets on older/weaker roles.
    - NEVER use extreme spacing compression or font size reduction as a workaround.
-   - OMIT Achievements section ONLY if space is genuinely critical.
+   - OMIT Achievements section ONLY if 'options.tightResume' is true. Otherwise, always include the Achievements section.
 
 3) SKILLS section — dynamic labels and safe fallback:
    - If 'user.skills' is empty or missing, OMIT the Skills section entirely.
@@ -147,6 +148,7 @@ Layout rules (fill the page intelligently):
    - Contact block, then optionally Skills (if present), then Education, Work Experience, Projects, Achievements.
 
 6) Formatting by section:
+   - Contact Line: Use \ContactLine{} with items separated by \textbullet{} (e.g., email \textbullet{} phone \textbullet{} github). NEVER use \\ inside \ContactLine{}.
    - Education & Work Experience: Use \RoleRow{Title}{Company/Org}{Location}{Dates}.
    - Projects (NO dangling separators):
        * Do NOT use \RoleRow unless you truly have Title, Org, Location, and Dates.
